@@ -1,0 +1,4 @@
+# ローカル設定・作業ファイル（公開しない）
+.claude/
+Thumbs.db
+.DS_Store

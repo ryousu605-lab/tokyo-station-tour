@@ -34,7 +34,8 @@ const scenes = {
     map: {x: 54, y: 17}, dest: true,
     links: [
       {to: "south_yaesu", dir: "forward", label: "南通路へ", x: 50, y: 45},
-      {to: "yaesu_central", dir: "left", label: "八重洲中央口方面", x: 15, y: 58}
+      {to: "yaesu_central", dir: "left", label: "八重洲中央口方面", x: 15, y: 58},
+      {to: "yaesu_south_bento", dir: "right", label: "駅弁・土産店（HANAGATAYA）前へ", x: 85, y: 58}
     ]
   },
 
@@ -66,7 +67,8 @@ const scenes = {
     map: {x: 30, y: 27}, dest: false,
     links: [
       {to: "north_center", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
-      {to: "yaesu_north", dir: "back", label: "八重洲北口へ戻る", x: 50, y: 86}
+      {to: "yaesu_north", dir: "back", label: "八重洲北口へ戻る", x: 50, y: 86},
+      {to: "shinkansen_north", dir: "left", label: "新幹線北乗換口へ", x: 15, y: 58}
     ]
   },
   north_center: {
@@ -134,7 +136,8 @@ const scenes = {
     links: [
       {to: "south_center", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
       {to: "shinkansen_south", dir: "left", label: "新幹線南乗換口へ", x: 15, y: 58},
-      {to: "yaesu_south", dir: "back", label: "八重洲南口へ戻る", x: 50, y: 86}
+      {to: "yaesu_south", dir: "back", label: "八重洲南口へ戻る", x: 50, y: 86},
+      {to: "yaesu_south_bento", dir: "right", label: "駅弁・土産店（HANAGATAYA）前へ", x: 85, y: 58}
     ]
   },
   south_center: {
@@ -143,21 +146,10 @@ const scenes = {
     floor: "1F",
     map: {x: 57, y: 34}, dest: false,
     links: [
-      {to: "south_maru", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
+      {to: "maru_south", dir: "forward", label: "丸の内南口へ", x: 50, y: 45},
       {to: "south_yaesu", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86}
     ]
   },
-  south_maru: {
-    name: "南通路（丸の内寄り）",
-    desc: "丸の内南口はもうすぐ。",
-    floor: "1F",
-    map: {x: 56, y: 41}, dest: false,
-    links: [
-      {to: "maru_south", dir: "forward", label: "丸の内南口へ", x: 50, y: 45},
-      {to: "south_center", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86}
-    ]
-  },
-
   /* ---- 丸の内側 改札前 ---- */
   maru_north: {
     name: "丸の内北口 改札前",
@@ -166,7 +158,7 @@ const scenes = {
     map: {x: 30, y: 44}, dest: true,
     links: [
       {to: "north_maru", dir: "back", label: "北通路へ戻る", x: 50, y: 86},
-      {to: "maru_central", dir: "left", label: "丸の内中央口方面", x: 15, y: 58}
+      {to: "maru_path_north", dir: "left", label: "丸の内中央口方面", x: 15, y: 58}
     ]
   },
   maru_central: {
@@ -176,8 +168,8 @@ const scenes = {
     map: {x: 48, y: 50}, dest: true,
     links: [
       {to: "central_maru", dir: "back", label: "中央通路へ戻る", x: 50, y: 86},
-      {to: "maru_north", dir: "right", label: "丸の内北口方面", x: 85, y: 58},
-      {to: "maru_south", dir: "left", label: "丸の内南口方面", x: 15, y: 58},
+      {to: "maru_path_north", dir: "right", label: "丸の内北口方面", x: 85, y: 58},
+      {to: "maru_path_south", dir: "left", label: "丸の内南口方面", x: 15, y: 58},
       {to: "b1_maru_chika_central", dir: "down", label: "丸の内地下改札へ（B1）", x: 50, y: 65}
     ]
   },
@@ -187,8 +179,49 @@ const scenes = {
     floor: "1F",
     map: {x: 55, y: 44}, dest: true,
     links: [
-      {to: "south_maru", dir: "back", label: "南通路へ戻る", x: 50, y: 86},
-      {to: "maru_central", dir: "right", label: "丸の内中央口方面", x: 85, y: 58}
+      {to: "south_center", dir: "back", label: "南通路へ戻る", x: 50, y: 86},
+      {to: "maru_path_south", dir: "right", label: "丸の内中央口方面", x: 85, y: 58}
+    ]
+  },
+
+  /* ---- 追加地点（位置は目測。?edit で微調整前提） ---- */
+  shinkansen_north: {
+    name: "新幹線北乗換口 前",
+    desc: "新幹線北のりかえ口。北通路から乗り換えできる。",
+    floor: "1F",
+    map: {x: 26, y: 30}, dest: true,
+    links: [
+      {to: "north_yaesu", dir: "back", label: "北通路へ戻る", x: 50, y: 86}
+    ]
+  },
+  yaesu_south_bento: {
+    name: "八重洲南口 駅弁・土産店前",
+    desc: "駅弁・土産のHANAGATAYA。新幹線南乗換口のそば。",
+    floor: "1F",
+    map: {x: 53, y: 21}, dest: false,
+    links: [
+      {to: "yaesu_south", dir: "back", label: "八重洲南口へ戻る", x: 50, y: 86},
+      {to: "south_yaesu", dir: "forward", label: "南通路へ", x: 50, y: 45}
+    ]
+  },
+  maru_path_north: {
+    name: "丸の内側通路（北口〜中央口）",
+    desc: "丸の内北口と丸の内中央口を結ぶ通路。",
+    floor: "1F",
+    map: {x: 39, y: 47}, dest: false,
+    links: [
+      {to: "maru_central", dir: "forward", label: "丸の内中央口へ", x: 50, y: 45},
+      {to: "maru_north", dir: "back", label: "丸の内北口へ戻る", x: 50, y: 86}
+    ]
+  },
+  maru_path_south: {
+    name: "丸の内側通路（中央口〜南口）",
+    desc: "丸の内中央口と丸の内南口を結ぶ通路。",
+    floor: "1F",
+    map: {x: 52, y: 47}, dest: false,
+    links: [
+      {to: "maru_south", dir: "forward", label: "丸の内南口へ", x: 50, y: 45},
+      {to: "maru_central", dir: "back", label: "丸の内中央口へ戻る", x: 50, y: 86}
     ]
   },
 
@@ -220,28 +253,8 @@ const scenes = {
     map: {x: 38, y: 49}, dest: false,
     links: [
       {to: "b1_ginsuzu", dir: "right", label: "銀の鈴広場へ", x: 85, y: 58},
-      {to: "b1_gransta_north", dir: "left", label: "グランスタ地下北口へ", x: 15, y: 58},
-      {to: "b1_maru_chika_north", dir: "forward", label: "丸の内地下方面へ", x: 50, y: 45},
+      {to: "b1_maru_chika_central", dir: "forward", label: "丸の内地下方面へ", x: 50, y: 45},
       {to: "north_center", dir: "up", label: "1F 北通路へ", x: 50, y: 86}
-    ]
-  },
-  b1_gransta_north: {
-    name: "グランスタ地下北口 改札前",
-    desc: "ICカード専用の地下改札。北地下自由通路側。",
-    floor: "B1",
-    map: {x: 20, y: 46}, dest: true,
-    links: [
-      {to: "b1_gransta", dir: "back", label: "グランスタ中央へ戻る", x: 50, y: 86}
-    ]
-  },
-  b1_maru_chika_north: {
-    name: "丸の内地下北口 改札前",
-    desc: "東京メトロ東西線 大手町駅方面への連絡口。",
-    floor: "B1",
-    map: {x: 27, y: 69}, dest: true,
-    links: [
-      {to: "b1_gransta", dir: "back", label: "グランスタ方面へ戻る", x: 50, y: 86},
-      {to: "b1_maru_chika_central", dir: "left", label: "丸の内地下中央口方面", x: 15, y: 58}
     ]
   },
   b1_maru_chika_central: {
@@ -250,18 +263,8 @@ const scenes = {
     floor: "B1",
     map: {x: 39, y: 79}, dest: true,
     links: [
-      {to: "b1_maru_chika_north", dir: "right", label: "丸の内地下北口方面", x: 85, y: 58},
-      {to: "b1_maru_chika_south", dir: "left", label: "丸の内地下南口方面", x: 15, y: 58},
+      {to: "b1_gransta", dir: "forward", label: "グランスタ方面へ", x: 50, y: 45},
       {to: "maru_central", dir: "up", label: "1F 丸の内中央口へ", x: 50, y: 45}
-    ]
-  },
-  b1_maru_chika_south: {
-    name: "丸の内地下南口 改札前",
-    desc: "動輪の広場・KITTE地下方面への連絡口。",
-    floor: "B1",
-    map: {x: 54, y: 76}, dest: true,
-    links: [
-      {to: "b1_maru_chika_central", dir: "back", label: "丸の内地下中央口へ戻る", x: 50, y: 86}
     ]
   }
 };

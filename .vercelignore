@@ -3,3 +3,12 @@ stationyard_1fb1.pdf
 実装計画.md
 撮影リスト.md
 .claude/
+
+# v3作業: 写真原本・中間物・検出データ・ツール・監査ページ
+photos_original/
+photos_masked/
+faces.json
+photo-exif.js
+tools/
+photo-audit.html
+face_review.html

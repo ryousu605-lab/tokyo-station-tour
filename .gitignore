@@ -2,3 +2,9 @@
 .claude/
 Thumbs.db
 .DS_Store
+
+# v3作業: 写真原本・中間物・検出データ（Publicリポジトリに上げない）
+photos_original/
+photos_masked/
+faces.json
+photo-exif.js

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>顔枠 目視補正 — Phase D-2（公開対象外）</title>
+<style>
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:system-ui, sans-serif; background:#1c1b19; color:#edeae3; padding:12px;}
+  h1{font-size:16px; margin-bottom:4px;}
+  .lead{font-size:12px; opacity:.75; margin-bottom:10px; line-height:1.5;}
+  .lead b{color:#e0b422;}
+  #bar{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+  #bar button{
+    font:inherit; font-size:13px; cursor:pointer;
+    border:1px solid rgba(237,234,227,.4); background:rgba(237,234,227,.08);
+    color:#edeae3; border-radius:6px; padding:6px 12px;
+  }
+  #bar .pos{font-size:13px; color:#a6873c; font-weight:700; min-width:120px;}
+  #bar .fn{font-family:ui-monospace, monospace; font-size:12px; opacity:.8;}
+  #bar .cnt{font-size:12px; opacity:.7;}
+  #wrap{display:inline-block; position:relative; border:1px solid rgba(237,234,227,.2);}
+  canvas{display:block; touch-action:none; cursor:crosshair; max-width:100%;}
+  .hint{font-size:11.5px; opacity:.6; margin-top:8px; line-height:1.6;}
+</style>
+</head>
+<body>
+<h1>顔枠 目視補正（Phase D-2 / 公開対象外）</h1>
+<p class="lead">
+  検出枠を<b>赤</b>で表示しています。<b>枠をクリック</b>で削除（誤検出）、<b>何もない所をドラッグ</b>で枠を追加（検出漏れ）。
+  全画像を確認したら「faces.json 書き出し」でダウンロードし、ルートの faces.json を置き換えてください。
+</p>
+<div id="bar">
+  <button onclick="prev()">← 前へ</button>
+  <span class="pos" id="pos"></span>
+  <button onclick="next()">次へ →</button>
+  <span class="fn" id="fn"></span>
+  <span class="cnt" id="cnt"></span>
+  <button onclick="exportJson()">faces.json 書き出し</button>
+</div>
+<div id="wrap"><canvas id="cv"></canvas></div>
+<p class="hint">
+  ・枠内クリック＝その枠を削除　・空きスペースをドラッグ＝新規枠を追加（元解像度で保持）<br>
+  ・キーボード ← / → でも移動できます。画像は <code>../photos_original/</code> から読み込みます。
+</p>
+
+<script src="faces.js"></script>
+<script>
+const DIR = "../photos_original/";
+const CANVAS_LONG = 1000;
+// 作業用コピー（元の FACES は書き換えない）
+const work = {};
+Object.keys(FACES).forEach(k => work[k] = FACES[k].map(b => b.slice()));
+const names = Object.keys(work);
+
+let idx = 0;
+let img = new Image();
+let scale = 1, natW = 0, natH = 0;
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+
+function load(){
+  const fn = names[idx];
+  document.getElementById("pos").textContent = `${idx+1} / ${names.length}`;
+  document.getElementById("fn").textContent = fn;
+  img = new Image();
+  img.onload = () => {
+    natW = img.naturalWidth; natH = img.naturalHeight;
+    scale = CANVAS_LONG / Math.max(natW, natH);
+    cv.width = Math.round(natW * scale);
+    cv.height = Math.round(natH * scale);
+    draw();
+  };
+  img.onerror = () => {
+    natW = natH = 0; scale = 1;
+    cv.width = 480; cv.height = 120;
+    ctx.fillStyle = "#333"; ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.fillStyle = "#e0b422"; ctx.font = "16px sans-serif";
+    ctx.fillText("画像が読めません: " + fn, 16, 60);
+    updateCnt();
+  };
+  img.src = DIR + fn;
+}
+
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(natW) ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  const boxes = work[names[idx]] || [];
+  ctx.lineWidth = 2; ctx.strokeStyle = "#ff3b30"; ctx.fillStyle = "rgba(255,59,48,0.12)";
+  boxes.forEach(b => {
+    const x = b[0]*scale, y = b[1]*scale, w = b[2]*scale, h = b[3]*scale;
+    ctx.fillRect(x,y,w,h); ctx.strokeRect(x,y,w,h);
+  });
+  if(pending){
+    ctx.strokeStyle = "#e0b422"; ctx.setLineDash([5,4]);
+    ctx.strokeRect(pending.x, pending.y, pending.w, pending.h);
+    ctx.setLineDash([]);
+  }
+  updateCnt();
+}
+function updateCnt(){
+  const n = (work[names[idx]]||[]).length;
+  document.getElementById("cnt").textContent = `この画像の枠: ${n}`;
+}
+
+// --- 操作: クリック削除 / ドラッグ追加 ---
+let start = null, pending = null, moved = false;
+function canvasPos(e){
+  const r = cv.getBoundingClientRect();
+  return {x: (e.clientX - r.left) * (cv.width / r.width),
+          y: (e.clientY - r.top) * (cv.height / r.height)};
+}
+function boxAt(px, py){
+  const boxes = work[names[idx]] || [];
+  for(let i = boxes.length-1; i >= 0; i--){
+    const b = boxes[i];
+    const x=b[0]*scale, y=b[1]*scale, w=b[2]*scale, h=b[3]*scale;
+    if(px>=x && px<=x+w && py>=y && py<=y+h) return i;
+  }
+  return -1;
+}
+cv.addEventListener("pointerdown", e => {
+  const p = canvasPos(e);
+  start = p; moved = false; pending = null;
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener("pointermove", e => {
+  if(!start) return;
+  const p = canvasPos(e);
+  if(Math.abs(p.x-start.x) > 4 || Math.abs(p.y-start.y) > 4) moved = true;
+  if(moved){
+    pending = {x: Math.min(start.x,p.x), y: Math.min(start.y,p.y),
+               w: Math.abs(p.x-start.x), h: Math.abs(p.y-start.y)};
+    draw();
+  }
+});
+cv.addEventListener("pointerup", e => {
+  if(!start) return;
+  const p = canvasPos(e);
+  const boxes = work[names[idx]] || (work[names[idx]] = []);
+  if(!moved){
+    const hit = boxAt(p.x, p.y);
+    if(hit >= 0) boxes.splice(hit, 1);          // クリック＝削除
+  } else if(pending && pending.w > 6 && pending.h > 6){
+    boxes.push([Math.round(pending.x/scale), Math.round(pending.y/scale),
+                Math.round(pending.w/scale), Math.round(pending.h/scale)]); // ドラッグ＝追加
+  }
+  start = null; pending = null; moved = false;
+  draw();
+});
+
+function prev(){ if(idx>0){ idx--; load(); } }
+function next(){ if(idx<names.length-1){ idx++; load(); } }
+window.addEventListener("keydown", e => {
+  if(e.key === "ArrowLeft") prev();
+  else if(e.key === "ArrowRight") next();
+});
+
+function exportJson(){
+  const text = JSON.stringify(work, null, 1);
+  const blob = new Blob([text], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "faces.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+load();
+</script>
+</body>
+</html>

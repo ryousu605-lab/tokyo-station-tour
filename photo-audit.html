@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>写真監査 — 東京駅バーチャル案内（公開対象外）</title>
+<style>
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:system-ui, sans-serif;
+    background:#1c1b19; color:#edeae3;
+    padding:14px 14px 220px;
+    line-height:1.5;
+  }
+  h1{font-size:18px; margin-bottom:4px;}
+  .lead{font-size:12.5px; opacity:.7; margin-bottom:16px;}
+  .lead code{background:rgba(255,255,255,.12); padding:1px 5px; border-radius:3px; font-size:11.5px;}
+  .scene{margin-bottom:22px;}
+  .scene > .sh{
+    font-size:14px; font-weight:700; margin-bottom:6px;
+    border-left:3px solid #a6873c; padding-left:8px;
+  }
+  .scene > .sh small{font-weight:400; opacity:.55; margin-left:8px; font-size:11px;}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:8px;
+  }
+  @media (max-width:640px){ .grid{grid-template-columns:repeat(2,1fr);} }
+  .cell{
+    position:relative;
+    border:3px solid transparent;
+    border-radius:8px;
+    overflow:hidden;
+    background:#26241f;
+    cursor:pointer;
+    user-select:none;
+  }
+  .cell.marked{border-color:#c0392b;}
+  .cell.warn{border-color:#e0b422;}
+  .cell.marked.warn{border-color:#c0392b; box-shadow:0 0 0 3px #e0b422 inset;}
+  .cell .imgwrap{
+    width:100%; aspect-ratio:4/3;
+    background:#000; display:flex; align-items:center; justify-content:center;
+  }
+  .cell img{width:100%; height:100%; object-fit:cover; display:block;}
+  .cell .noimg{
+    font-size:12px; opacity:.5; text-align:center; padding:10px;
+  }
+  .cell .cap{
+    padding:6px 8px; font-size:11px;
+  }
+  .cap .nm{font-weight:700;}
+  .cap .dir{color:#a6873c;}
+  .cap .fn{font-family:ui-monospace, monospace; font-size:10px; opacity:.7; word-break:break-all;}
+  .cap .bearing{font-size:10.5px; margin-top:3px;}
+  .cap .bearing.bad{color:#e0b422; font-weight:700;}
+  .cap .bearing.na{opacity:.4;}
+  .cell .markbadge{
+    position:absolute; top:4px; right:4px;
+    background:#c0392b; color:#fff; font-size:10px; font-weight:700;
+    padding:2px 6px; border-radius:10px; display:none;
+  }
+  .cell.marked .markbadge{display:block;}
+  #dock{
+    position:fixed; left:0; right:0; bottom:0;
+    background:rgba(20,19,17,.97);
+    border-top:1px solid #a6873c;
+    padding:10px 14px calc(env(safe-area-inset-bottom,0px) + 10px);
+    z-index:10;
+  }
+  #dock .row{display:flex; align-items:center; gap:10px; margin-bottom:6px;}
+  #dock .row b{font-size:12px;}
+  #dock .row .cnt{font-size:12px; color:#a6873c;}
+  #dock button{
+    font:inherit; font-size:12px; cursor:pointer;
+    border:1px solid rgba(237,234,227,.4); background:rgba(237,234,227,.08);
+    color:#edeae3; border-radius:5px; padding:5px 10px;
+  }
+  #marks{
+    width:100%; height:88px; resize:vertical;
+    background:#26241f; color:#edeae3;
+    border:1px solid rgba(237,234,227,.25); border-radius:6px;
+    padding:8px; font-family:ui-monospace, monospace; font-size:12px;
+  }
+  .legend{font-size:11px; opacity:.7; margin-bottom:10px;}
+  .legend i{display:inline-block; width:11px; height:11px; border-radius:2px; vertical-align:-1px; margin:0 3px 0 10px;}
+</style>
+</head>
+<body>
+<h1>写真監査ページ（公開対象外）</h1>
+<p class="lead">
+  各地点×4方角の原本写真（<code>photos_original/</code>）を並べています。
+  ファイル名の方角と<b>実撮影方位（EXIFのGPSImgDirection＋偏角補正）</b>が±45°を超えてずれるセルは自動で<b>黄枠</b>になります。
+  誤対応だと思うセルを<b>タップ</b>すると赤枠になり、下のリストにファイル名が追加されます。
+  最後にリストをコピーして「旧名→正しい地点ID_方角」の対応を指示してください。
+</p>
+<div class="legend">
+  <i style="background:#e0b422"></i>方位ずれ疑い（自動）
+  <i style="background:#c0392b"></i>誤対応マーク（タップ）
+</div>
+<div id="root"></div>
+
+<div id="dock">
+  <div class="row">
+    <b>誤対応マーク一覧</b>
+    <span class="cnt" id="cnt">0 件</span>
+    <button onclick="copyMarks()">コピー</button>
+    <button onclick="clearMarks()">全クリア</button>
+  </div>
+  <textarea id="marks" placeholder="タップしたセルのファイル名がここに1行ずつ入ります"></textarea>
+</div>
+
+<script src="scenes.js"></script>
+<script src="photo-exif.js"></script>
+<script>
+const DIR = "photos_original/";
+const DIRS = ["n", "e", "s", "w"];
+const DIR_LABEL = {n: "北 (_n)", e: "東 (_e)", s: "南 (_s)", w: "西 (_w)"};
+const EXPECT = {n: 0, e: 90, s: 180, w: 270};   // 方角サフィックスの期待方位（真北基準・時計回り）
+const EXIF = (typeof EXIF_DIR !== "undefined") ? EXIF_DIR : {};
+
+// 角度差（-180〜180）
+function angDiff(a, b){
+  let d = ((a - b + 180) % 360 + 360) % 360 - 180;
+  return d;
+}
+
+const root = document.getElementById("root");
+const marks = document.getElementById("marks");
+const marked = new Set();
+
+Object.entries(scenes).forEach(([id, s]) => {
+  const sc = document.createElement("div");
+  sc.className = "scene";
+  sc.innerHTML = `<div class="sh">${s.name}<small>${id} — ${s.floor}</small></div>`;
+  const grid = document.createElement("div");
+  grid.className = "grid";
+  DIRS.forEach(dir => {
+    const fn = `${id}_${dir}.jpg`;
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.dataset.fn = fn;
+
+    // 方位判定
+    let bearingHtml;
+    if(fn in EXIF){
+      const actual = EXIF[fn];
+      const diff = angDiff(actual, EXPECT[dir]);
+      const bad = Math.abs(diff) > 45;
+      if(bad) cell.classList.add("warn");
+      bearingHtml = `<div class="bearing ${bad ? "bad" : ""}">実撮影方位: ${actual}°${bad ? ` (期待${EXPECT[dir]}°から${Math.round(Math.abs(diff))}°ずれ)` : ""}</div>`;
+    } else {
+      bearingHtml = `<div class="bearing na">実撮影方位: —（EXIF無 / 未撮影）</div>`;
+    }
+
+    cell.innerHTML = `
+      <div class="imgwrap">
+        <img src="${DIR}${fn}" alt="${fn}"
+             onerror="this.parentNode.innerHTML='<div class=\\'noimg\\'>未撮影</div>';">
+      </div>
+      <div class="markbadge">誤</div>
+      <div class="cap">
+        <div class="nm">${s.name}</div>
+        <div class="dir">${DIR_LABEL[dir]}</div>
+        <div class="fn">${fn}</div>
+        ${bearingHtml}
+      </div>`;
+
+    cell.addEventListener("click", () => {
+      if(marked.has(fn)){ marked.delete(fn); cell.classList.remove("marked"); }
+      else { marked.add(fn); cell.classList.add("marked"); }
+      syncMarks();
+    });
+    grid.appendChild(cell);
+  });
+  sc.appendChild(grid);
+  root.appendChild(sc);
+});
+
+function syncMarks(){
+  marks.value = [...marked].join("\n");
+  document.getElementById("cnt").textContent = marked.size + " 件";
+}
+function copyMarks(){
+  marks.select();
+  if(navigator.clipboard) navigator.clipboard.writeText(marks.value).catch(()=>{});
+  else document.execCommand("copy");
+}
+function clearMarks(){
+  marked.clear();
+  document.querySelectorAll(".cell.marked").forEach(c => c.classList.remove("marked"));
+  syncMarks();
+}
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>東京駅 1F バーチャル案内 | Virtual Tour</title>
+<title>東京駅 バーチャル案内 | Virtual Tour</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -135,10 +135,11 @@
     pointer-events:auto;
   }
   .hotspot .arrow{
-    width:60px; height:60px;
+    width:76px; height:76px;
     border-radius:50%;
-    background:rgba(237,234,227,0.12);
-    border:1.5px solid rgba(237,234,227,0.6);
+    background:rgba(28,27,25,0.58);
+    border:2px solid rgba(255,255,255,0.92);
+    box-shadow:0 3px 14px rgba(0,0,0,0.45);
     -webkit-backdrop-filter:blur(3px);
     backdrop-filter:blur(3px);
     display:flex; align-items:center; justify-content:center;
@@ -149,17 +150,35 @@
     border-color:var(--moss);
     transform:scale(1.1);
   }
-  .hotspot .arrow svg{width:24px; height:24px; fill:none; stroke:var(--paper); stroke-width:2;}
+  .hotspot .arrow svg{width:34px; height:34px; fill:none; stroke:#fff; stroke-width:2.6;}
   .hotspot .tag{
-    font-family:'JetBrains Mono', monospace;
-    font-size:10.5px;
-    letter-spacing:.04em;
-    color:var(--paper);
-    background:rgba(28,27,25,0.6);
-    padding:4px 9px;
-    border-radius:4px;
-    white-space:nowrap;
+    font-family:'Noto Sans JP', sans-serif;
+    font-size:12.5px; font-weight:700; letter-spacing:.02em;
+    color:#fff; background:rgba(28,27,25,0.78);
+    border:1px solid rgba(255,255,255,0.25);
+    padding:5px 12px; border-radius:14px; white-space:nowrap;
   }
+  .hotspot.stairs .arrow{background:rgba(166,135,60,0.85); border-color:#fff;}
+
+  /* ---------- nav bar（背後・真横の行き先チップ） ---------- */
+  #navBar{
+    position:absolute; left:50%; transform:translateX(-50%);
+    bottom:calc(env(safe-area-inset-bottom, 0px) + 140px);
+    max-width:calc(100vw - 28px);
+    display:flex; gap:8px; overflow-x:auto; z-index:7;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  }
+  #navBar::-webkit-scrollbar{display:none;}
+  .navChip{
+    flex:none; display:flex; align-items:center; gap:6px;
+    border:1px solid rgba(237,234,227,0.4);
+    background:rgba(28,27,25,0.72); color:var(--paper);
+    border-radius:19px; height:38px; padding:0 14px;
+    font-size:12.5px; font-weight:700; cursor:pointer;
+    -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
+  }
+  .navChip .ic{font-size:14px; color:var(--brass);}
+  .editing .pin{touch-action:none;}
 
   /* ---------- compass (destination scenes) ---------- */
   #compass{
@@ -409,7 +428,7 @@
   #howtoBtn{
     position:absolute;
     left:14px;
-    bottom:calc(env(safe-area-inset-bottom, 0px) + 136px);
+    bottom:calc(env(safe-area-inset-bottom, 0px) + 190px);
     z-index:8;
     font-family:'JetBrains Mono', monospace;
     font-size:10.5px;
@@ -425,7 +444,7 @@
   #howtoPanel{
     display:none;
     position:absolute; left:14px; right:14px;
-    bottom:calc(env(safe-area-inset-bottom, 0px) + 182px);
+    bottom:calc(env(safe-area-inset-bottom, 0px) + 236px);
     z-index:9;
     max-width:400px;
     max-height:62vh;
@@ -502,6 +521,7 @@
   </div>
 
   <div id="hotspots"></div>
+  <div id="navBar"></div>
 
   <div id="compass">
     <div class="ring"></div>
@@ -527,7 +547,7 @@
   <div id="howtoBtn" onclick="document.getElementById('howtoPanel').classList.toggle('open')">?  使い方・写真の入れ方</div>
   <div id="howtoPanel">
     <h2>操作方法</h2>
-    写真上の矢印ボタンで各地点へ移動（矢印は構内図上での実際の進行方向を指します）。左上の「←」でひとつ戻る。右下のミニマップをタップすると構内図全体が開き、ピンをタップするとその地点へジャンプできます。画面の左右端にある「‹ ›」ボタンで視点を回転して東西南北を見渡せます（左下のコンパスは今向いている方角の表示です）。
+    写真上の大きな矢印は「いま見えている方向にある行き先」、金色の階段ボタンは「階の上り下り」です。画面下のチップは、いま背中側にある行き先（↩は来た道を戻る）。画面の左右端「‹ ›」で視点を回転すると、背中側の行き先も正面の矢印に変わります。移動すると自動的に進んだ方向を向きます。右下のミニマップをタップすると構内図全体が開きます。
     <h2>写真の入れ方</h2>
     このHTMLと同じ場所に <code>photos</code> フォルダを作り、以下の名前で入れるだけで自動反映されます。<br>
     ・四方向: <code>photos/地点ID_n.jpg</code>（北）、<code>_e</code>（東）、<code>_s</code>（南）、<code>_w</code>（西）<br>
@@ -554,7 +574,7 @@
   </div>
   <div id="mapScroll">
     <div id="mapInner">
-      <img id="bigMapImg" src="1039_all.png" alt="東京駅構内図">
+      <img id="bigMapImg" src="maps/1f.png" alt="東京駅構内図">
       <svg id="trailSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
       <!-- pins injected by JS -->
     </div>
@@ -569,66 +589,35 @@
 <!-- 地点データ（MAPS / startId / scenes）はHTMLに内蔵。
      別ファイル(scenes.js)にすると iPhone 等でローカルの外部ファイル読込がブロックされ
      真っ白になることがあるため、単一ファイルで確実に開けるようにしている。
-     編集時はこの下の const scenes = {...} を直接書き換える（同梱 scenes.js は参照用コピー）。 -->
-<script>
+     データの正本は scenes.js。編集後に tools/sync_scenes.py で反映する（このブロックは直接編集しない）。 -->
+<script id="scenesData">
 const MAPS = {
-  "1F": { image: "maps/1f.png", width: 4000, height: 4000, label: "1F" },
+  "1F": { image: "maps/1f.png", width: 3368, height: 2382, label: "1F" },
   "B1": { image: "maps/b1.png", width: 3368, height: 2382, label: "B1" }
 };
 const startId = "yaesu_central";
 
+/* 地点は「撮影時の写真グループ」と 1:1 で対応する。
+   map:{x,y} は構内図(公式1F/B1平面図)上の位置(%)。?edit のピンドラッグで最終調整する。 */
 const scenes = {
-  /* ---- 八重洲側 改札前 ---- */
+  /* ---- 八重洲北口 ---- */
+  yaesu_north_plaza: {
+    name: "八重洲北口 改札外広場",
+    desc: "八重洲北口を出た改札外の広場。",
+    floor: "1F",
+    map: {x: 32.5, y: 22.7}, dest: true,
+    links: [
+      {to: "yaesu_north", dir: "forward", label: "八重洲北口 改札へ", x: 50, y: 45}
+    ]
+  },
   yaesu_north: {
     name: "八重洲北口 改札前",
     desc: "大丸東京店側の改札。",
     floor: "1F",
-    map: {x: 32, y: 24}, dest: true,
+    map: {x: 30.4, y: 35.1}, dest: true,
     links: [
       {to: "north_yaesu", dir: "forward", label: "北通路へ", x: 50, y: 45},
-      {to: "yaesu_central", dir: "right", label: "八重洲中央口方面", x: 84, y: 58}
-    ]
-  },
-  yaesu_central: {
-    name: "八重洲中央口 改札前",
-    desc: "八重洲側のメイン改札。グランルーフ正面。",
-    floor: "1F",
-    map: {x: 45, y: 23}, dest: true,
-    links: [
-      {to: "central_yaesu", dir: "forward", label: "中央通路へ", x: 50, y: 45},
-      {to: "yaesu_north", dir: "left", label: "八重洲北口方面", x: 15, y: 58},
-      {to: "yaesu_south", dir: "right", label: "八重洲南口方面", x: 85, y: 58}
-    ]
-  },
-  yaesu_south: {
-    name: "八重洲南口 改札前",
-    desc: "高速バスターミナル側の改札。",
-    floor: "1F",
-    map: {x: 54, y: 17}, dest: true,
-    links: [
-      {to: "south_yaesu", dir: "forward", label: "南通路へ", x: 50, y: 45},
-      {to: "yaesu_central", dir: "left", label: "八重洲中央口方面", x: 15, y: 58},
-      {to: "yaesu_south_bento", dir: "right", label: "駅弁・土産店（HANAGATAYA）前へ", x: 85, y: 58}
-    ]
-  },
-
-  /* ---- 新幹線乗換口 ---- */
-  shinkansen_central: {
-    name: "新幹線中央乗換口 前",
-    desc: "東海道・山陽新幹線への乗り換え。",
-    floor: "1F",
-    map: {x: 40, y: 28}, dest: true,
-    links: [
-      {to: "central_yaesu", dir: "back", label: "中央通路へ戻る", x: 50, y: 86}
-    ]
-  },
-  shinkansen_south: {
-    name: "新幹線南乗換口 前",
-    desc: "新幹線南のりかえ口。東北・上越・北陸方面もこちら。",
-    floor: "1F",
-    map: {x: 50, y: 29}, dest: true,
-    links: [
-      {to: "south_yaesu", dir: "back", label: "南通路へ戻る", x: 50, y: 86}
+      {to: "yaesu_north_plaza", dir: "back", label: "改札外広場へ", x: 50, y: 86}
     ]
   },
 
@@ -637,7 +626,7 @@ const scenes = {
     name: "北通路（八重洲寄り）",
     desc: "八重洲北口から丸の内方面へ延びる通路。",
     floor: "1F",
-    map: {x: 30, y: 27}, dest: false,
+    map: {x: 31, y: 42}, dest: false,
     links: [
       {to: "north_center", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
       {to: "yaesu_north", dir: "back", label: "八重洲北口へ戻る", x: 50, y: 86},
@@ -645,45 +634,74 @@ const scenes = {
     ]
   },
   north_center: {
-    name: "北通路 中程（エスカレーター付近）",
+    name: "北通路 中程",
     desc: "各ホームへのエスカレーター・階段が並ぶ。",
     floor: "1F",
-    map: {x: 28, y: 33}, dest: true,
+    map: {x: 31, y: 56}, dest: true,
     links: [
       {to: "north_maru", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
       {to: "north_yaesu", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86},
-      {to: "b1_gransta", dir: "down", label: "グランスタ地下へ（B1）", x: 85, y: 58}
+      {to: "b1_gransta", dir: "down", label: "地下弁当屋前へ（B1）", x: 85, y: 58}
     ]
   },
   north_maru: {
     name: "北通路（丸の内寄り）",
     desc: "丸の内北口はもうすぐ。",
     floor: "1F",
-    map: {x: 26, y: 40}, dest: false,
+    map: {x: 31, y: 70}, dest: false,
     links: [
       {to: "maru_north", dir: "forward", label: "丸の内北口へ", x: 50, y: 45},
       {to: "north_center", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86}
     ]
   },
 
-  /* ---- 中央通路 ---- */
+  /* ---- 新幹線 乗換口（北・中央） ---- */
+  shinkansen_north: {
+    name: "新幹線北乗換口 前",
+    desc: "東北・上越・北陸新幹線への north のりかえ口。",
+    floor: "1F",
+    map: {x: 33.7, y: 55.6}, dest: true,
+    links: [
+      {to: "north_yaesu", dir: "back", label: "北通路へ戻る", x: 50, y: 86}
+    ]
+  },
+  shinkansen_central: {
+    name: "新幹線中央乗換口 前",
+    desc: "東海道・山陽新幹線への中央のりかえ口。",
+    floor: "1F",
+    map: {x: 47.3, y: 54.7}, dest: true,
+    links: [
+      {to: "central_yaesu", dir: "back", label: "中央通路へ戻る", x: 50, y: 86}
+    ]
+  },
+
+  /* ---- 八重洲中央口・中央通路 ---- */
+  yaesu_central: {
+    name: "八重洲中央口 改札前",
+    desc: "八重洲側のメイン改札。グランルーフ正面。",
+    floor: "1F",
+    map: {x: 55.8, y: 36}, dest: true,
+    links: [
+      {to: "central_yaesu", dir: "forward", label: "中央通路へ", x: 50, y: 45}
+    ]
+  },
   central_yaesu: {
-    name: "中央通路（駅弁屋 祭 前）",
+    name: "中央通路（八重洲寄り・駅弁屋 祭 前）",
     desc: "駅弁屋「祭」やグランスタの店舗が並ぶ賑やかなエリア。",
     floor: "1F",
-    map: {x: 44, y: 25}, dest: true,
+    map: {x: 52.5, y: 54.7}, dest: true,
     links: [
       {to: "central_center", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
       {to: "shinkansen_central", dir: "left", label: "新幹線中央乗換口へ", x: 15, y: 58},
       {to: "yaesu_central", dir: "back", label: "八重洲中央口へ戻る", x: 50, y: 86},
-      {to: "b1_ginsuzu", dir: "down", label: "銀の鈴広場へ（B1）", x: 85, y: 58}
+      {to: "b1_ginsuzu", dir: "down", label: "地下銀の鈴へ（B1）", x: 85, y: 58}
     ]
   },
   central_center: {
     name: "中央通路 中程",
     desc: "各ホームへの階段・エスカレーターが続く。",
     floor: "1F",
-    map: {x: 43, y: 33}, dest: false,
+    map: {x: 52.3, y: 63.1}, dest: false,
     links: [
       {to: "central_maru", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
       {to: "central_yaesu", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86}
@@ -693,108 +711,145 @@ const scenes = {
     name: "中央通路（丸の内寄り）",
     desc: "丸の内中央口方面。",
     floor: "1F",
-    map: {x: 42, y: 40}, dest: false,
+    map: {x: 52.3, y: 75.7}, dest: false,
     links: [
       {to: "maru_central", dir: "forward", label: "丸の内中央口へ", x: 50, y: 45},
       {to: "central_center", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86}
     ]
   },
 
-  /* ---- 南通路 ---- */
-  south_yaesu: {
-    name: "南通路（八重洲寄り）",
-    desc: "八重洲南口から続く通路。新幹線南乗換口が近い。",
-    floor: "1F",
-    map: {x: 57, y: 26}, dest: false,
-    links: [
-      {to: "south_center", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
-      {to: "shinkansen_south", dir: "left", label: "新幹線南乗換口へ", x: 15, y: 58},
-      {to: "yaesu_south", dir: "back", label: "八重洲南口へ戻る", x: 50, y: 86},
-      {to: "yaesu_south_bento", dir: "right", label: "駅弁・土産店（HANAGATAYA）前へ", x: 85, y: 58}
-    ]
-  },
-  south_center: {
-    name: "南通路 中程",
-    desc: "各ホームへの階段・エスカレーターが続く。",
-    floor: "1F",
-    map: {x: 57, y: 34}, dest: false,
-    links: [
-      {to: "maru_south", dir: "forward", label: "丸の内南口へ", x: 50, y: 45},
-      {to: "south_yaesu", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86}
-    ]
-  },
-  /* ---- 丸の内側 改札前 ---- */
+  /* ---- 丸の内側 ---- */
   maru_north: {
     name: "丸の内北口 改札前",
     desc: "ドーム天井の丸の内駅舎北側。",
     floor: "1F",
-    map: {x: 30, y: 44}, dest: true,
+    map: {x: 30.6, y: 77.8}, dest: true,
     links: [
       {to: "north_maru", dir: "back", label: "北通路へ戻る", x: 50, y: 86},
       {to: "maru_path_north", dir: "left", label: "丸の内中央口方面", x: 15, y: 58}
-    ]
-  },
-  maru_central: {
-    name: "丸の内中央口 前",
-    desc: "皇居・行幸通りの正面。ICカード専用改札。",
-    floor: "1F",
-    map: {x: 48, y: 50}, dest: true,
-    links: [
-      {to: "central_maru", dir: "back", label: "中央通路へ戻る", x: 50, y: 86},
-      {to: "maru_path_north", dir: "right", label: "丸の内北口方面", x: 85, y: 58},
-      {to: "maru_path_south", dir: "left", label: "丸の内南口方面", x: 15, y: 58},
-      {to: "b1_maru_chika_central", dir: "down", label: "丸の内地下改札へ（B1）", x: 50, y: 65}
-    ]
-  },
-  maru_south: {
-    name: "丸の内南口 改札前",
-    desc: "ドーム天井の丸の内駅舎南側。KITTE方面。",
-    floor: "1F",
-    map: {x: 55, y: 44}, dest: true,
-    links: [
-      {to: "south_center", dir: "back", label: "南通路へ戻る", x: 50, y: 86},
-      {to: "maru_path_south", dir: "right", label: "丸の内中央口方面", x: 85, y: 58}
-    ]
-  },
-
-  /* ---- 追加地点（位置は目測。?edit で微調整前提） ---- */
-  shinkansen_north: {
-    name: "新幹線北乗換口 前",
-    desc: "新幹線北のりかえ口。北通路から乗り換えできる。",
-    floor: "1F",
-    map: {x: 26, y: 30}, dest: true,
-    links: [
-      {to: "north_yaesu", dir: "back", label: "北通路へ戻る", x: 50, y: 86}
-    ]
-  },
-  yaesu_south_bento: {
-    name: "八重洲南口 駅弁・土産店前",
-    desc: "駅弁・土産のHANAGATAYA。新幹線南乗換口のそば。",
-    floor: "1F",
-    map: {x: 53, y: 21}, dest: false,
-    links: [
-      {to: "yaesu_south", dir: "back", label: "八重洲南口へ戻る", x: 50, y: 86},
-      {to: "south_yaesu", dir: "forward", label: "南通路へ", x: 50, y: 45}
     ]
   },
   maru_path_north: {
     name: "丸の内側通路（北口〜中央口）",
     desc: "丸の内北口と丸の内中央口を結ぶ通路。",
     floor: "1F",
-    map: {x: 39, y: 47}, dest: false,
+    map: {x: 41.1, y: 78.8}, dest: false,
+    links: [
+      {to: "maru_chika_front", dir: "forward", label: "丸の内地下中央口 手前へ", x: 50, y: 45},
+      {to: "maru_north", dir: "back", label: "丸の内北口へ戻る", x: 50, y: 86}
+    ]
+  },
+  maru_chika_front: {
+    name: "丸の内地下中央口 手前",
+    desc: "丸の内地下中央口へ下りる手前。",
+    floor: "1F",
+    map: {x: 47, y: 81.2}, dest: false,
     links: [
       {to: "maru_central", dir: "forward", label: "丸の内中央口へ", x: 50, y: 45},
-      {to: "maru_north", dir: "back", label: "丸の内北口へ戻る", x: 50, y: 86}
+      {to: "maru_path_north", dir: "back", label: "丸の内北口方面へ戻る", x: 50, y: 86}
+    ]
+  },
+  maru_central: {
+    name: "丸の内中央口 前",
+    desc: "皇居・行幸通りの正面。ICカード専用改札。",
+    floor: "1F",
+    map: {x: 51.3, y: 79.6}, dest: true,
+    links: [
+      {to: "central_maru", dir: "back", label: "中央通路へ戻る", x: 50, y: 86},
+      {to: "maru_chika_front", dir: "right", label: "丸の内北口方面", x: 85, y: 58},
+      {to: "chika_escalator", dir: "forward", label: "地下入口（エスカレーター）へ", x: 50, y: 45},
+      {to: "maru_path_south", dir: "left", label: "丸の内南口方面", x: 15, y: 58}
+    ]
+  },
+  chika_escalator: {
+    name: "地下入口（B1エスカレーター）",
+    desc: "B1 グランスタへ下りるエスカレーター。",
+    floor: "1F",
+    map: {x: 51.5, y: 69.4}, dest: false,
+    links: [
+      {to: "maru_central", dir: "back", label: "丸の内中央口へ戻る", x: 50, y: 86},
+      {to: "b1_ginsuzu", dir: "down", label: "地下銀の鈴へ（B1）", x: 50, y: 65}
     ]
   },
   maru_path_south: {
     name: "丸の内側通路（中央口〜南口）",
     desc: "丸の内中央口と丸の内南口を結ぶ通路。",
     floor: "1F",
-    map: {x: 52, y: 47}, dest: false,
+    map: {x: 63.1, y: 80.6}, dest: false,
     links: [
       {to: "maru_south", dir: "forward", label: "丸の内南口へ", x: 50, y: 45},
       {to: "maru_central", dir: "back", label: "丸の内中央口へ戻る", x: 50, y: 86}
+    ]
+  },
+  maru_south: {
+    name: "丸の内南口 改札前",
+    desc: "ドーム天井の丸の内駅舎南側。KITTE方面。",
+    floor: "1F",
+    map: {x: 80.3, y: 77.6}, dest: true,
+    links: [
+      {to: "maru_path_south", dir: "back", label: "丸の内中央口方面へ戻る", x: 50, y: 86},
+      {to: "south_maru", dir: "forward", label: "南通路へ", x: 50, y: 45}
+    ]
+  },
+
+  /* ---- 南通路・新幹線南・八重洲南口 ---- */
+  south_maru: {
+    name: "南通路（丸の内寄り）",
+    desc: "丸の内南口から八重洲南口へ続く南通路。",
+    floor: "1F",
+    map: {x: 75, y: 68}, dest: false,
+    links: [
+      {to: "shinkansen_south_west", dir: "forward", label: "新幹線南乗換口方面へ", x: 50, y: 45},
+      {to: "maru_south", dir: "back", label: "丸の内南口へ戻る", x: 50, y: 86}
+    ]
+  },
+  shinkansen_south_west: {
+    name: "新幹線南乗換口（西寄り）",
+    desc: "東北・上越・北陸新幹線 南のりかえ口の西側。",
+    floor: "1F",
+    map: {x: 64.9, y: 59.4}, dest: true,
+    links: [
+      {to: "shinkansen_south_bento", dir: "forward", label: "新幹線南乗換口 弁当屋前へ", x: 50, y: 45},
+      {to: "south_maru", dir: "back", label: "南通路（丸の内寄り）へ戻る", x: 50, y: 86}
+    ]
+  },
+  shinkansen_south_bento: {
+    name: "新幹線南乗換口 弁当屋前",
+    desc: "東海道・山陽新幹線 南のりかえ口そばの弁当屋。",
+    floor: "1F",
+    map: {x: 63, y: 54.5}, dest: true,
+    links: [
+      {to: "yaesu_south_shinkansen_bento", dir: "forward", label: "八重洲南口周辺 新幹線口弁当屋へ", x: 50, y: 45},
+      {to: "shinkansen_south_west", dir: "back", label: "新幹線南乗換口（西寄り）へ戻る", x: 50, y: 86}
+    ]
+  },
+  yaesu_south_shinkansen_bento: {
+    name: "八重洲南口周辺 新幹線口弁当屋",
+    desc: "新幹線のりかえ口そばの駅弁・土産店。",
+    floor: "1F",
+    map: {x: 72.2, y: 54.9}, dest: false,
+    links: [
+      {to: "yaesu_south_bento", dir: "forward", label: "八重洲南口周辺 弁当屋へ", x: 50, y: 45},
+      {to: "shinkansen_south_bento", dir: "back", label: "新幹線南乗換口 弁当屋前へ戻る", x: 50, y: 86}
+    ]
+  },
+  yaesu_south_bento: {
+    name: "八重洲南口周辺 弁当屋",
+    desc: "八重洲南口改札そばの駅弁・土産店（HANAGATAYA）。",
+    floor: "1F",
+    map: {x: 78.9, y: 37.8}, dest: true,
+    links: [
+      {to: "yaesu_south_shinkansen", dir: "forward", label: "八重洲南口周辺（新幹線・南寄り）へ", x: 50, y: 45},
+      {to: "yaesu_south_shinkansen_bento", dir: "back", label: "新幹線口弁当屋へ戻る", x: 50, y: 86}
+    ]
+  },
+  yaesu_south_shinkansen: {
+    name: "八重洲南口周辺 新幹線（南寄り）",
+    desc: "八重洲南口の南寄り。京葉線方面もこちら。",
+    floor: "1F",
+    map: {x: 75, y: 45.9}, dest: true,
+    links: [
+      {to: "yaesu_south_bento", dir: "back", label: "八重洲南口周辺 弁当屋へ戻る", x: 50, y: 86}
     ]
   },
 
@@ -803,41 +858,30 @@ const scenes = {
     name: "八重洲地下中央口 改札前",
     desc: "八重洲地下街・東京駅一番街に直結する地下改札。",
     floor: "B1",
-    map: {x: 51.5, y: 27}, dest: true,
+    map: {x: 44.2, y: 29.3}, dest: true,
     links: [
-      {to: "b1_ginsuzu", dir: "back", label: "銀の鈴広場へ戻る", x: 50, y: 86}
+      {to: "b1_ginsuzu", dir: "back", label: "地下銀の鈴へ戻る", x: 50, y: 86}
     ]
   },
   b1_ginsuzu: {
-    name: "銀の鈴広場",
+    name: "地下銀の鈴",
     desc: "定番の待ち合わせ場所。グランスタ東京の中心部。",
     floor: "B1",
     map: {x: 44, y: 36}, dest: true,
     links: [
       {to: "b1_yaesu", dir: "forward", label: "八重洲地下中央口へ", x: 50, y: 45},
-      {to: "b1_gransta", dir: "left", label: "グランスタ中央へ", x: 15, y: 58},
+      {to: "b1_gransta", dir: "left", label: "地下弁当屋前へ", x: 15, y: 58},
       {to: "central_yaesu", dir: "up", label: "1F 中央通路へ", x: 85, y: 58}
     ]
   },
   b1_gransta: {
-    name: "グランスタ地下 中央（スクエア ゼロ付近）",
-    desc: "土産・スイーツ店舗が並ぶ地下コンコースの中心。",
+    name: "地下弁当屋前",
+    desc: "土産・スイーツ・弁当の店舗が並ぶ地下コンコース。",
     floor: "B1",
-    map: {x: 38, y: 49}, dest: false,
+    map: {x: 47.2, y: 46.9}, dest: true,
     links: [
-      {to: "b1_ginsuzu", dir: "right", label: "銀の鈴広場へ", x: 85, y: 58},
-      {to: "b1_maru_chika_central", dir: "forward", label: "丸の内地下方面へ", x: 50, y: 45},
+      {to: "b1_ginsuzu", dir: "right", label: "地下銀の鈴へ", x: 85, y: 58},
       {to: "north_center", dir: "up", label: "1F 北通路へ", x: 50, y: 86}
-    ]
-  },
-  b1_maru_chika_central: {
-    name: "丸の内地下中央口 改札前",
-    desc: "東京メトロ丸ノ内線への連絡口。総武・横須賀線ホームが近い。",
-    floor: "B1",
-    map: {x: 39, y: 79}, dest: true,
-    links: [
-      {to: "b1_gransta", dir: "forward", label: "グランスタ方面へ", x: 50, y: 45},
-      {to: "maru_central", dir: "up", label: "1F 丸の内中央口へ", x: 50, y: 45}
     ]
   }
 };
@@ -930,16 +974,42 @@ function renderHotspots(){
   const s = scenes[current];
   const hs = document.getElementById("hotspots");
   hs.innerHTML = "";
-  s.links.forEach(l => {
+  s.links.forEach((l, i) => {
+    const stairs = (l.dir === "up" || l.dir === "down");
+    if(!stairs && (l.dir === "back" || Math.abs(relAngle(l)) > 90)) return; // 下部バーへ
     const pos = linkScreenPos(l);
     const el = document.createElement("div");
-    el.className = "hotspot";
+    el.className = "hotspot" + (stairs ? " stairs" : "");
+    el.dataset.link = i;
     el.style.left = pos.x + "%";
     el.style.top = pos.y + "%";
-    el.innerHTML = `<div class="arrow">${arrowSvg(arrowRotation(l))}</div><div class="tag">${l.label}</div>`;
+    const icon = stairs ? stairsSvg(l.dir) : arrowSvg(Math.round(relAngle(l) / 45) * 45);
+    el.innerHTML = `<div class="arrow">${icon}</div><div class="tag">${l.label}</div>`;
     el.onclick = () => goTo(l.to);
     hs.appendChild(el);
   });
+  renderNavBar();
+}
+
+function renderNavBar(){
+  const bar = document.getElementById("navBar");
+  bar.innerHTML = "";
+  const items = [];
+  scenes[current].links.forEach(l => {
+    if(l.dir === "up" || l.dir === "down") return;
+    if(l.dir === "back"){ items.unshift({l, ic: "↩"}); return; }
+    const a = relAngle(l);
+    if(Math.abs(a) <= 90) return;
+    items.push({l, ic: a > 0 ? "↷" : "↶"});
+  });
+  items.forEach(({l, ic}) => {
+    const c = document.createElement("div");
+    c.className = "navChip";
+    c.innerHTML = `<span class="ic">${ic}</span>${l.label}`;
+    c.onclick = () => goTo(l.to);
+    bar.appendChild(c);
+  });
+  bar.style.display = items.length ? "flex" : "none";
 }
 
 function render(){
@@ -948,7 +1018,7 @@ function render(){
   // top bar
   const ids = Object.keys(scenes);
   document.querySelector("#topTitle .eyebrow").textContent =
-    `TOKYO STATION 1F — ${ids.indexOf(current)+1} / ${ids.length}`;
+    `TOKYO STATION ${scenes[current].floor} — ${ids.indexOf(current)+1} / ${ids.length}`;
   document.querySelector("#topTitle h1").textContent = s.name;
   document.querySelector("#topTitle .desc").textContent = s.desc || "";
   document.getElementById("backBtn").disabled = history.length <= 1;
@@ -969,8 +1039,8 @@ function render(){
 
 function goTo(id){
   if(!scenes[id]) return;
+  faceTravelDir(current, id);   // current 更新より前に呼ぶ
   current = id;
-  viewDir = "n";
   history.push(id);
   if(visited[visited.length-1] !== id) visited.push(id);
   render();
@@ -978,11 +1048,22 @@ function goTo(id){
 
 function goBack(){
   if(history.length <= 1) return;
+  const from = current;   // 離れる地点（pop 前に保持）
   history.pop();
   current = history[history.length-1];
-  viewDir = "n";
+  faceTravelDir(from, current);   // 遷移元→遷移先の向きで視点を決定
   if(visited[visited.length-1] !== current) visited.push(current);
   render();
+}
+
+// fromId から toId へ移動したとき向くべき方角（同一フロアの平面移動のみ。階移動・不明時は現状維持）
+function faceTravelDir(fromId, toId){
+  const a = scenes[fromId] && scenes[fromId].map, b = scenes[toId] && scenes[toId].map;
+  if(!a || !b || scenes[fromId].floor !== scenes[toId].floor) return;
+  const dx = b.x - a.x, dy = b.y - a.y;
+  if(dx === 0 && dy === 0) return;
+  const bearing = ((Math.atan2(dx, -dy) * 180 / Math.PI) - MAP_NORTH_DEG + 360) % 360;
+  viewDir = ["n", "e", "s", "w"][Math.round(bearing / 90) % 4];
 }
 
 function setDir(d){
@@ -1009,11 +1090,12 @@ function linkScreenAngle(l){
   return bearing - COMPASS_FROM_N[viewDir];            // 向いている方角を正面(0°)に補正
 }
 
-// 矢印の回転角。階の上り下り(up/down)は平面方向が無いので階段アイコン向きを固定で使う。
-function arrowRotation(l){
-  if(l.dir === "up")   return -45;
-  if(l.dir === "down") return 135;
-  return linkScreenAngle(l);
+// linkScreenAngle を -180〜180 に正規化（前方コーン判定・矢印スナップ用）
+function relAngle(l){
+  let a = linkScreenAngle(l) % 360;
+  if(a > 180) a -= 360;
+  if(a <= -180) a += 360;
+  return a;
 }
 
 // 矢印ボタンの表示位置も、いま向いている方角を正面とした相対角に合わせて中央から放射状に配置する。
@@ -1022,12 +1104,20 @@ function linkScreenPos(l){
   if(l.dir === "up" || l.dir === "down") return {x: l.x, y: l.y}; // 階移動は平面方向が無いので指定位置
   const t = scenes[l.to] && scenes[l.to].map;
   if(!t) return {x: l.x, y: l.y};
-  const rad = linkScreenAngle(l) * Math.PI / 180;
-  return {x: 50 + 30 * Math.sin(rad), y: 52 - 30 * Math.cos(rad)};
+  const rad = relAngle(l) * Math.PI / 180;
+  return {x: 50 + 32 * Math.sin(rad), y: 56 - 24 * Math.cos(rad)};
 }
 
 function arrowSvg(rot){
   return `<svg viewBox="0 0 24 24" style="transform:rotate(${rot}deg)"><path d="M12 4 L12 20 M6 10 L12 4 L18 10" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+// 階段アイコン（up=上り, down=下り）。踏面のギザギザ＋上/下向き矢印。
+function stairsSvg(dir){
+  const arrow = dir === "up"
+    ? `<path d="M17 10 V4 M14 7 L17 4 L20 7"/>`
+    : `<path d="M17 4 V10 M14 7 L17 10 L20 7"/>`;
+  return `<svg viewBox="0 0 24 24"><path d="M3 21 h4.5 v-4.5 h4.5 v-4.5 h4.5 v-4.5 h4.5"/>${arrow}</svg>`;
 }
 
 /* ---------- mini map ---------- */
@@ -1082,6 +1172,7 @@ function renderMapFloor(){
     if(s.floor !== mapFloor) return;
     const pin = document.createElement("div");
     pin.className = "pin" + (s.dest ? " dest" : "") + (id === current ? " here" : "");
+    pin.dataset.id = id;
     pin.style.left = s.map.x + "%";
     pin.style.top = s.map.y + "%";
     pin.innerHTML = `<div class="dot"></div><div class="plabel">${s.name}</div>`;
@@ -1204,9 +1295,9 @@ function initEdit(){
   let drag = null;
   const hs = document.getElementById("hotspots");
   hs.addEventListener("pointerdown", e => {
-    const el = e.target.closest(".hotspot");
+    const el = e.target.closest(".hotspot.stairs");   // 階段のみドラッグ可（通常矢印は放射配置で x/y 無視のため）
     if(!el) return;
-    const idx = [...hs.children].indexOf(el);
+    const idx = Number(el.dataset.link);              // DOM順ではなく links 添字を直接参照
     if(idx < 0) return;
     drag = {el, idx, startX: e.clientX, startY: e.clientY, moved: false};
     el.setPointerCapture(e.pointerId);
@@ -1237,6 +1328,41 @@ function initEdit(){
       el.addEventListener("click", block, true);
     }
     drag = null;
+  });
+
+  // 4. ピンのドラッグ移動（地図上の map 座標変更）
+  document.body.classList.add("editing");
+  let pinDrag = null;
+  const mapInner = document.getElementById("mapInner");
+  mapInner.addEventListener("pointerdown", e => {
+    const el = e.target.closest(".pin");
+    if(!el) return;
+    pinDrag = {el, id: el.dataset.id, sx: e.clientX, sy: e.clientY, moved: false};
+    el.setPointerCapture(e.pointerId);
+  });
+  mapInner.addEventListener("pointermove", e => {
+    if(!pinDrag) return;
+    const r = mapInner.getBoundingClientRect();
+    pinDrag.el.style.left = ((e.clientX - r.left) / r.width * 100) + "%";
+    pinDrag.el.style.top  = ((e.clientY - r.top)  / r.height * 100) + "%";
+    if(Math.abs(e.clientX - pinDrag.sx) > 6 || Math.abs(e.clientY - pinDrag.sy) > 6) pinDrag.moved = true;
+  });
+  mapInner.addEventListener("pointerup", e => {
+    if(!pinDrag) return;
+    if(pinDrag.moved && scenes[pinDrag.id]){
+      const r = mapInner.getBoundingClientRect();
+      const x = editRound((e.clientX - r.left) / r.width * 100);
+      const y = editRound((e.clientY - r.top)  / r.height * 100);
+      scenes[pinDrag.id].map.x = x;
+      scenes[pinDrag.id].map.y = y;
+      editCopy(`{x: ${x.toFixed(1)}, y: ${y.toFixed(1)}}`,
+        `${scenes[pinDrag.id].name}: {x:${x.toFixed(1)}, y:${y.toFixed(1)}}`);
+      const el = pinDrag.el;
+      const block = ev => { ev.stopImmediatePropagation(); ev.preventDefault(); el.removeEventListener("click", block, true); };
+      el.addEventListener("click", block, true);   // ドラッグ直後の goTo 遷移を1回抑止
+      renderMapFloor();   // 接続線・軌跡を新座標で引き直す
+    }
+    pinDrag = null;
   });
 }
 

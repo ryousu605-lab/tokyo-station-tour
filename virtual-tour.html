@@ -34,10 +34,15 @@
   }
 
   /* ---------- photo layers (crossfade) ---------- */
+  /* 横幅に合わせて写真の左右端まで必ず見せる（cover だと縦長画面で中央しか映らない）。
+     縦長画面では上下がレターボックスになり、そこに上部バーや下部UIが乗る。
+     横長画面では 100% auto が cover とほぼ同じ挙動になり、従来どおり全画面に写る。 */
   .photoLayer{
     position:absolute; inset:0;
-    background-size:cover;
+    background-size:100% auto;
+    background-repeat:no-repeat;
     background-position:center;
+    background-color:#141311;
     opacity:0;
     transform:translateX(0);
     transition:opacity .45s ease, transform .45s ease;
@@ -123,9 +128,14 @@
   }
 
   /* ---------- hotspots ---------- */
-  #hotspots{position:absolute; inset:0; z-index:4; pointer-events:none;}
+  /* top/height は JS が写真の描画領域に合わせる（矢印を黒帯に浮かせない） */
+  #hotspots{position:absolute; left:0; width:100%; top:0; height:100%; z-index:4; pointer-events:none;}
+  /* 位置は left/top ではなく transform で与える（setHotspotPos）。left を動かすと
+     絶対配置の利用可能幅が変わり、ラベルの折り返し＝要素の大きさが位置によって
+     変わってしまい、重なり計算が実際とずれるため。 */
   .hotspot{
     position:absolute;
+    left:0; top:0;
     transform:translate(-50%,-50%);
     display:flex;
     flex-direction:column;
@@ -159,6 +169,18 @@
     padding:5px 12px; border-radius:14px; white-space:nowrap;
   }
   .hotspot.stairs .arrow{background:rgba(166,135,60,0.85); border-color:#fff;}
+
+  /* 縦持ちでは写真帯が画面高の約1/3しかない。矢印とラベルを一回り小さくして
+     この帯の中に重なりなく収める（配置の分離は renderHotspots が行う）。 */
+  @media (max-width:520px){
+    .hotspot .arrow{width:58px; height:58px;}
+    .hotspot .arrow svg{width:27px; height:27px;}
+    .hotspot .tag{
+      font-size:11px; padding:3px 8px; border-radius:11px;
+      white-space:normal; text-align:center; line-height:1.3;
+      max-width:128px;
+    }
+  }
 
   /* ---------- nav bar（背後・真横の行き先チップ） ---------- */
   #navBar{
@@ -552,7 +574,7 @@
     このHTMLと同じ場所に <code>photos</code> フォルダを作り、以下の名前で入れるだけで自動反映されます。<br>
     ・四方向: <code>photos/地点ID_n.jpg</code>（北）、<code>_e</code>（東）、<code>_s</code>（南）、<code>_w</code>（西）<br>
     ・1枚だけの場合: <code>photos/地点ID.jpg</code>（全方向で表示）<br>
-    未配置の方向には撮影予定のファイル名が表示されます。詳細は同梱の「撮影リスト.md」を参照。
+    写真のある方向だけを見られます（未撮影の方向は回転で飛ばします）。写真を足したら <code>python tools/sync_scenes.py</code> で一覧を作り直してください。撮影予定のファイル名は <code>?edit</code> で開くと確認できます。詳細は同梱の「撮影リスト.md」を参照。
     <h2>位置の微調整</h2>
     地点データはこのHTML内の <code>const scenes = {...}</code> に内蔵されています（iPhone等でも確実に開けるよう単一ファイル化）。<code>map:{x,y}</code> は構内図上の位置（%）です。矢印の向き・位置は構内図上の移動方向から自動計算されるため、通常は調整不要です（階の上り下りのみ <code>x,y</code> で位置指定）。
   </div>
@@ -658,7 +680,7 @@ const scenes = {
   /* ---- 新幹線 乗換口（北・中央） ---- */
   shinkansen_north: {
     name: "新幹線北乗換口 前",
-    desc: "東北・上越・北陸新幹線への north のりかえ口。",
+    desc: "東北・上越・北陸新幹線への北のりかえ口。",
     floor: "1F",
     map: {x: 33.7, y: 55.6}, dest: true,
     links: [
@@ -871,7 +893,8 @@ const scenes = {
     links: [
       {to: "b1_yaesu", dir: "forward", label: "八重洲地下中央口へ", x: 50, y: 45},
       {to: "b1_gransta", dir: "left", label: "地下弁当屋前へ", x: 15, y: 58},
-      {to: "central_yaesu", dir: "up", label: "1F 中央通路へ", x: 85, y: 58}
+      {to: "central_yaesu", dir: "up", label: "1F 中央通路へ", x: 85, y: 58},
+      {to: "chika_escalator", dir: "up", label: "1F 丸の内中央口方面へ（エスカレーター）", x: 15, y: 65}
     ]
   },
   b1_gransta: {
@@ -885,9 +908,89 @@ const scenes = {
     ]
   }
 };
+
+/* ---- 公開写真マニフェスト ----
+   tools/sync_scenes.py が photos/*.jpg から自動生成する。手で編集しない。 */
+/* PHOTOS:BEGIN */
+const PHOTOS = new Set([
+  "b1_ginsuzu_e.jpg",
+  "b1_ginsuzu_n.jpg",
+  "b1_ginsuzu_s.jpg",
+  "b1_ginsuzu_w.jpg",
+  "b1_gransta_n.jpg",
+  "b1_gransta_s.jpg",
+  "b1_gransta_w.jpg",
+  "b1_yaesu_e.jpg",
+  "b1_yaesu_w.jpg",
+  "central_center_e.jpg",
+  "central_center_n.jpg",
+  "central_center_s.jpg",
+  "central_center_w.jpg",
+  "central_maru_e.jpg",
+  "central_maru_n.jpg",
+  "central_maru_s.jpg",
+  "central_maru_w.jpg",
+  "central_yaesu_e.jpg",
+  "central_yaesu_n.jpg",
+  "central_yaesu_s.jpg",
+  "central_yaesu_w.jpg",
+  "chika_escalator_e.jpg",
+  "maru_central_e.jpg",
+  "maru_central_w.jpg",
+  "maru_chika_front_w.jpg",
+  "maru_north_e.jpg",
+  "maru_north_s.jpg",
+  "maru_north_w.jpg",
+  "maru_path_north_e.jpg",
+  "maru_path_north_n.jpg",
+  "maru_path_north_s.jpg",
+  "maru_path_south_n.jpg",
+  "maru_path_south_s.jpg",
+  "maru_south_n.jpg",
+  "maru_south_w.jpg",
+  "north_center_e.jpg",
+  "north_center_w.jpg",
+  "north_maru_n.jpg",
+  "north_maru_w.jpg",
+  "north_yaesu_e.jpg",
+  "north_yaesu_s.jpg",
+  "shinkansen_central_e.jpg",
+  "shinkansen_central_n.jpg",
+  "shinkansen_central_s.jpg",
+  "shinkansen_central_w.jpg",
+  "shinkansen_north_n.jpg",
+  "shinkansen_north_s.jpg",
+  "shinkansen_north_w.jpg",
+  "shinkansen_south_bento_e.jpg",
+  "shinkansen_south_bento_n.jpg",
+  "shinkansen_south_bento_s.jpg",
+  "shinkansen_south_bento_w.jpg",
+  "shinkansen_south_west_e.jpg",
+  "shinkansen_south_west_n.jpg",
+  "shinkansen_south_west_s.jpg",
+  "south_maru_e.jpg",
+  "south_maru_w.jpg",
+  "yaesu_central_e.jpg",
+  "yaesu_central_n.jpg",
+  "yaesu_central_s.jpg",
+  "yaesu_central_w.jpg",
+  "yaesu_north_e.jpg",
+  "yaesu_north_plaza_n.jpg",
+  "yaesu_north_plaza_w.jpg",
+  "yaesu_north_w.jpg",
+  "yaesu_south_bento_e.jpg",
+  "yaesu_south_bento_s.jpg",
+  "yaesu_south_shinkansen_bento_n.jpg",
+  "yaesu_south_shinkansen_bento_w.jpg",
+  "yaesu_south_shinkansen_n.jpg",
+  "yaesu_south_shinkansen_s.jpg",
+  "yaesu_south_shinkansen_w.jpg",
+]);
+/* PHOTOS:END */
 </script>
 <script>
 const MAP_IMG_SEL_MINI = document.getElementById("miniImg");
+const DIRS = ["n", "e", "s", "w"];   // 時計回り
 const DIR_LABEL = {n: "北", e: "東", s: "南", w: "西"};
 const COMPASS_FROM_N = {n: 0, e: 90, s: 180, w: 270}; // 北を基準にした各方角の時計回り角度
 // 構内図は「北＝画面左・東＝画面上（八重洲）・南＝画面右・西＝画面下（丸の内）」の向き。
@@ -914,7 +1017,51 @@ function photoCandidates(id, dir){
   return [`photos/${id}_${dir}.jpg`, `photos/${id}.jpg`];
 }
 
+// その地点で実際に写真がある方角（PHOTOS マニフェストを参照）。
+// JS からはファイルの有無を同期的に判定できないため、公開写真の一覧を内蔵している。
+// 方角別写真が 1 枚も無く共通写真 id.jpg がある場合は全方角を返す。
+function availableDirs(id){
+  const dirs = DIRS.filter(d => PHOTOS.has(`${id}_${d}.jpg`));
+  if(dirs.length) return dirs;
+  return PHOTOS.has(`${id}.jpg`) ? DIRS.slice() : [];
+}
+
+// 2 方角の角度差（0〜180）
+function dirGap(a, b){
+  const d = Math.abs(COMPASS_FROM_N[a] - COMPASS_FROM_N[b]) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+// want に写真が無ければ、写真のある方角のうち角度が最も近いものへスナップする
+function snapDir(id, want){
+  const dirs = availableDirs(id);
+  if(!dirs.length || dirs.includes(want)) return want;
+  return dirs.reduce((best, d) => dirGap(d, want) < dirGap(best, want) ? d : best);
+}
+
+let photoAR = 4 / 3;   // 表示中の写真の縦横比。onload で実測値に更新する
+
+// 写真が実際に描画されている矩形（background-size:100% auto の結果。レターボックスは含まない）。
+// 矢印はこの中だけに置く。横長画面では写真が上下にはみ出すので stage 全体になる。
+function photoRect(){
+  const stage = document.getElementById("stage");
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const h = W / photoAR;
+  return {left: 0, top: Math.max(0, (H - h) / 2), width: W, height: Math.min(H, h)};
+}
+
+// #hotspots を写真の描画領域に一致させる。矢印の % 座標はこの領域が基準になる。
+function layoutHotspotArea(){
+  const r = photoRect();
+  const hs = document.getElementById("hotspots");
+  hs.style.top = r.top + "px";
+  hs.style.height = r.height + "px";
+  return r;
+}
+
+let photoGen = 0;   // 画像ロードの世代。回転を連打しても古いロードが後勝ちしないようにする
 function showPhoto(){
+  const gen = ++photoGen;
   const s = scenes[current];
   const cands = photoCandidates(current, viewDir);
   const next = document.getElementById(activeLayer === "A" ? "layerB" : "layerA");
@@ -922,8 +1069,11 @@ function showPhoto(){
 
   let i = 0;
   const tryNext = () => {
+    if(gen !== photoGen) return;   // 新しい表示要求に追い越された
     if(i >= cands.length){
-      // どの候補も読めない → 撮影予定のファイル名を表示
+      // 撮影予定の表示は編集時のみ。通常モードは availableDirs が写真のある方角しか
+      // 返さないためここには来ない。
+      if(!EDIT) return;
       next.style.backgroundImage = "none";
       next.innerHTML = `
         <div class="missing">
@@ -937,9 +1087,15 @@ function showPhoto(){
     const src = cands[i++];
     const img = new Image();
     img.onload = () => {
+      if(gen !== photoGen) return;
       next.innerHTML = "";
       next.style.backgroundImage = `url("${src}")`;
       swapLayers(next, prev);
+      const ar = img.naturalWidth / img.naturalHeight;
+      if(Math.abs(ar - photoAR) > 0.002){   // 縦横比が違う写真なら矢印の置ける範囲も変わる
+        photoAR = ar;
+        renderHotspots();
+      }
     };
     img.onerror = tryNext;
     img.src = src;
@@ -962,33 +1118,128 @@ function swapLayers(next, prev){
   activeLayer = (next.id === "layerA") ? "A" : "B";
 }
 
-// 画面端ボタンで視点を90°回転（時計回り: n→e→s→w）
+// 画面端ボタンで視点を回転（時計回り。写真のある方角だけを巡り、無い方角は飛ばす）
 function turnView(step){
-  const order = ["n", "e", "s", "w"];
+  const dirs = availableDirs(current);
+  if(dirs.length <= 1) return;
+  const i = dirs.indexOf(viewDir);
   turnStep = step;
-  setDir(order[(order.indexOf(viewDir) + step + 4) % 4]);
+  setDir(dirs[(i + step + dirs.length) % dirs.length]);
 }
 
 /* ---------- render ---------- */
+// a と b が重なっていれば、a を -d・b を +d 動かせば離れる最小移動量を返す（軸に平行な最短方向）
+function overlapPush(a, b){
+  const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+  const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+  if(ox <= 0 || oy <= 0) return null;
+  if(ox < oy) return {dx: ((a.left + a.right) < (b.left + b.right) ? ox : -ox), dy: 0};
+  return {dx: 0, dy: ((a.top + a.bottom) < (b.top + b.bottom) ? oy : -oy)};
+}
+
+// 矢印の位置（#hotspots 内のローカル px）。CSS 側の理由で left/top ではなく transform を使う。
+function setHotspotPos(el, x, y){
+  el.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+}
+
+// 障害物 o から it を逃がす移動量。最短方向が写真領域の外に出てしまう場合があるので
+// （回転ボタンの下は帯の底まで余白が足りない等）、領域内に留まれる方向を優先して選ぶ。
+function pushOut(it, o, area){
+  const r = {left: it.x - it.w/2, top: it.y - it.h/2, right: it.x + it.w/2, bottom: it.y + it.h/2};
+  if(Math.min(r.right, o.right) <= Math.max(r.left, o.left)) return null;
+  if(Math.min(r.bottom, o.bottom) <= Math.max(r.top, o.top)) return null;
+  const cands = [
+    {dx: o.left - r.right, dy: 0},   // 左へ
+    {dx: o.right - r.left, dy: 0},   // 右へ
+    {dx: 0, dy: o.top - r.bottom},   // 上へ
+    {dx: 0, dy: o.bottom - r.top}    // 下へ
+  ];
+  const cost = c => Math.abs(c.dx) + Math.abs(c.dy);
+  const fits = c =>
+    it.x + c.dx - it.w/2 >= -0.01 && it.x + c.dx + it.w/2 <= area.width + 0.01 &&
+    it.y + c.dy - it.h/2 >= -0.01 && it.y + c.dy + it.h/2 <= area.height + 0.01;
+  cands.sort((a, b) => cost(a) - cost(b));
+  return cands.find(fits) || cands[0];
+}
+
+// 動かせないUIの矩形（#hotspots 内のローカル座標）。矢印はこれらを避ける。
+function obstacleRects(area){
+  const out = [];
+  document.querySelectorAll(".turnBtn, .navChip, #compass, #minimap").forEach(el => {
+    if(el.offsetParent === null) return;   // 非表示のものは障害物にしない
+    const r = el.getBoundingClientRect();
+    if(!r.width || !r.height) return;
+    out.push({left: r.left - area.left, top: r.top - area.top,
+              right: r.right - area.left, bottom: r.bottom - area.top});
+  });
+  return out;
+}
+
+// 放射配置のままだと角度の近いリンク同士や階段ボタンとラベルが重なって押せない・読めない。
+// 理想位置から始めて、重なりを反復で押し分け、最後に写真領域内へ収める。
+// 向きは矢印アイコンの回転が示すので、位置が多少ずれても意味は失われない。
+function placeHotspots(items, area){
+  if(!items.length) return;
+  const GAP = 6;   // 最小すきま
+  items.forEach(it => { it.w = it.el.offsetWidth + GAP; it.h = it.el.offsetHeight + GAP; });
+  const obstacles = obstacleRects(area);
+  const rectOf = it => ({left: it.x - it.w/2, top: it.y - it.h/2,
+                         right: it.x + it.w/2, bottom: it.y + it.h/2});
+  const clamp = it => {
+    const hw = Math.min(it.w/2, area.width/2), hh = Math.min(it.h/2, area.height/2);
+    it.x = Math.min(Math.max(it.x, hw), area.width - hw);
+    it.y = Math.min(Math.max(it.y, hh), area.height - hh);
+  };
+
+  for(let iter = 0; iter < 80; iter++){
+    let moved = false;
+    for(let i = 0; i < items.length; i++){
+      for(let j = i + 1; j < items.length; j++){
+        const a = items[i], b = items[j];
+        const ov = overlapPush(rectOf(a), rectOf(b));
+        if(!ov) continue;
+        a.x -= ov.dx / 2; a.y -= ov.dy / 2;
+        b.x += ov.dx / 2; b.y += ov.dy / 2;
+        moved = true;
+      }
+    }
+    for(const it of items){
+      for(const o of obstacles){
+        const p = pushOut(it, o, area);
+        if(!p) continue;
+        it.x += p.dx; it.y += p.dy;
+        moved = true;
+      }
+    }
+    items.forEach(clamp);
+    if(!moved) break;
+  }
+  items.forEach(it => setHotspotPos(it.el, it.x, it.y));
+}
+
 function renderHotspots(){
   const s = scenes[current];
   const hs = document.getElementById("hotspots");
+  const area = layoutHotspotArea();
   hs.innerHTML = "";
+
+  const items = [];
   s.links.forEach((l, i) => {
     const stairs = (l.dir === "up" || l.dir === "down");
     if(!stairs && (l.dir === "back" || Math.abs(relAngle(l)) > 90)) return; // 下部バーへ
-    const pos = linkScreenPos(l);
     const el = document.createElement("div");
     el.className = "hotspot" + (stairs ? " stairs" : "");
     el.dataset.link = i;
-    el.style.left = pos.x + "%";
-    el.style.top = pos.y + "%";
     const icon = stairs ? stairsSvg(l.dir) : arrowSvg(Math.round(relAngle(l) / 45) * 45);
     el.innerHTML = `<div class="arrow">${icon}</div><div class="tag">${l.label}</div>`;
     el.onclick = () => goTo(l.to);
     hs.appendChild(el);
+    const p = linkScreenPos(l);
+    items.push({el, x: p.x / 100 * area.width, y: p.y / 100 * area.height});
   });
-  renderNavBar();
+
+  renderNavBar();          // チップは障害物なので、押し分けより先に作る
+  placeHotspots(items, area);
 }
 
 function renderNavBar(){
@@ -1012,6 +1263,21 @@ function renderNavBar(){
   bar.style.display = items.length ? "flex" : "none";
 }
 
+// コンパスと回転ボタン。写真のある方角だけを見せる（無い方角は押せてはいけない）。
+function renderCompass(){
+  const dirs = availableDirs(current);
+  const comp = document.getElementById("compass");
+  comp.classList.add("on");
+  comp.querySelectorAll(".dirBtn").forEach(b => {
+    b.style.display = dirs.includes(b.dataset.dir) ? "flex" : "none";
+    b.classList.toggle("active", b.dataset.dir === viewDir);
+  });
+  comp.querySelector(".center .big").textContent = DIR_LABEL[viewDir];
+  // 見られる方角が1つだけなら回転ボタン自体を出さない
+  document.querySelectorAll(".turnBtn").forEach(b =>
+    b.style.display = dirs.length > 1 ? "flex" : "none");
+}
+
 function render(){
   const s = scenes[current];
 
@@ -1023,15 +1289,10 @@ function render(){
   document.querySelector("#topTitle .desc").textContent = s.desc || "";
   document.getElementById("backBtn").disabled = history.length <= 1;
 
+  // コンパスは回転ボタンの表示を決める＝矢印が避ける障害物が変わるので、先に確定させる
+  renderCompass();
   // hotspots（矢印は「向いている方角」を正面とした相対向きで配置・回転）
   renderHotspots();
-
-  // compass（全地点で四方向を見渡せる）
-  const comp = document.getElementById("compass");
-  comp.classList.add("on");
-  comp.querySelectorAll(".dirBtn").forEach(b =>
-    b.classList.toggle("active", b.dataset.dir === viewDir));
-  comp.querySelector(".center .big").textContent = DIR_LABEL[viewDir];
 
   showPhoto();
   updateMinimap();
@@ -1056,22 +1317,24 @@ function goBack(){
   render();
 }
 
-// fromId から toId へ移動したとき向くべき方角（同一フロアの平面移動のみ。階移動・不明時は現状維持）
-function faceTravelDir(fromId, toId){
+// fromId から toId へ進んだ方角（同一フロアの平面移動のみ。階移動・不明時は null）
+function travelDir(fromId, toId){
   const a = scenes[fromId] && scenes[fromId].map, b = scenes[toId] && scenes[toId].map;
-  if(!a || !b || scenes[fromId].floor !== scenes[toId].floor) return;
+  if(!a || !b || scenes[fromId].floor !== scenes[toId].floor) return null;
   const dx = b.x - a.x, dy = b.y - a.y;
-  if(dx === 0 && dy === 0) return;
+  if(dx === 0 && dy === 0) return null;
   const bearing = ((Math.atan2(dx, -dy) * 180 / Math.PI) - MAP_NORTH_DEG + 360) % 360;
-  viewDir = ["n", "e", "s", "w"][Math.round(bearing / 90) % 4];
+  return DIRS[Math.round(bearing / 90) % 4];
+}
+
+// 到着地点で向く方角を決める。進行方向に写真が無ければ、写真のある方角のうち最寄りへ寄せる。
+function faceTravelDir(fromId, toId){
+  viewDir = snapDir(toId, travelDir(fromId, toId) || viewDir);
 }
 
 function setDir(d){
   viewDir = d;
-  const comp = document.getElementById("compass");
-  comp.querySelectorAll(".dirBtn").forEach(b =>
-    b.classList.toggle("active", b.dataset.dir === d));
-  comp.querySelector(".center .big").textContent = DIR_LABEL[d];
+  renderCompass();
   renderHotspots();   // 振り向いたら別地点への矢印も向き・位置を更新
   showPhoto();
   updateCone();
@@ -1145,11 +1408,14 @@ function updateCone(){
 }
 
 /* ---------- full map overlay ---------- */
+// 実寸を測る処理は requestAnimationFrame に載せない（背景タブでは発火せず、開いた
+// ときに現在地が中央に来ない・ラベルが間引かれないままになる）。表示→描画の順なら
+// 同期でもレイアウトは確定している。
 function openMap(){
   mapFloor = scenes[current].floor;
-  renderMapFloor();
   document.getElementById("mapOverlay").classList.add("open");
-  requestAnimationFrame(centerMapOnCurrent);
+  renderMapFloor();   // ラベルの間引きは実寸を測るので、表示してから描く
+  centerMapOnCurrent();
 }
 
 function setMapFloor(f){
@@ -1216,6 +1482,30 @@ function renderMapFloor(){
 
   document.getElementById("mHereLabel").textContent =
     scenes[current].floor === mapFloor ? "現在地: " + scenes[current].name : `${mapFloor} を表示中（現在地は${scenes[current].floor}）`;
+
+  declutterLabels();
+}
+
+// 横幅フィットの初期ズームでは 27 地点のラベルが折り重なって読めない。
+// 優先度の高い順（現在地→改札・主要地点→通過点）に、すでに置いたラベルと重ならない
+// ものだけを表示する。ズームを上げれば全ラベルを出す。ピン自体は常に全部見える。
+function declutterLabels(){
+  const inner = document.getElementById("mapInner");
+  const pins = [...inner.querySelectorAll(".pin")];
+  pins.forEach(p => p.querySelector(".plabel").style.display = "");
+  if(MAP_ZOOMS[mapZoomIdx] >= 180) return;
+
+  const rank = p => p.classList.contains("here") ? 0 : (p.classList.contains("dest") ? 1 : 2);
+  const placed = [];
+  pins.sort((a, b) => rank(a) - rank(b)).forEach(p => {
+    const lab = p.querySelector(".plabel");
+    const r = lab.getBoundingClientRect();
+    const box = {left: r.left - 1, top: r.top - 1, right: r.right + 1, bottom: r.bottom + 1};
+    const hit = placed.some(q =>
+      !(box.right <= q.left || q.right <= box.left || box.bottom <= q.top || q.bottom <= box.top));
+    if(hit) lab.style.display = "none";
+    else placed.push(box);
+  });
 }
 
 function centerMapOnCurrent(){
@@ -1234,7 +1524,8 @@ function closeMap(){
 function zoomMap(delta){
   mapZoomIdx = Math.max(0, Math.min(MAP_ZOOMS.length-1, mapZoomIdx + delta));
   document.getElementById("mapInner").style.width = MAP_ZOOMS[mapZoomIdx] + "%";
-  requestAnimationFrame(centerMapOnCurrent);
+  centerMapOnCurrent();
+  declutterLabels();
 }
 
 /* ---------- edit mode (?edit) ---------- */
@@ -1302,18 +1593,21 @@ function initEdit(){
     drag = {el, idx, startX: e.clientX, startY: e.clientY, moved: false};
     el.setPointerCapture(e.pointerId);
   });
+  // 矢印の x,y は写真の描画領域に対する % なので、その矩形を基準に読む
+  const hsPct = e => {
+    const r = hs.getBoundingClientRect();
+    return {x: (e.clientX - r.left) / r.width * 100, y: (e.clientY - r.top) / r.height * 100};
+  };
   hs.addEventListener("pointermove", e => {
     if(!drag) return;
-    const x = e.clientX / window.innerWidth * 100;
-    const y = e.clientY / window.innerHeight * 100;
-    drag.el.style.left = x + "%";
-    drag.el.style.top = y + "%";
+    const r = hs.getBoundingClientRect();
+    setHotspotPos(drag.el, e.clientX - r.left, e.clientY - r.top);
     if(Math.abs(e.clientX - drag.startX) > 6 || Math.abs(e.clientY - drag.startY) > 6) drag.moved = true;
   });
   hs.addEventListener("pointerup", e => {
     if(!drag) return;
-    const x = editRound(e.clientX / window.innerWidth * 100);
-    const y = editRound(e.clientY / window.innerHeight * 100);
+    const p = hsPct(e);
+    const x = editRound(p.x), y = editRound(p.y);
     const link = scenes[current].links[drag.idx];
     if(link){
       link.x = x;
@@ -1368,8 +1662,9 @@ function initEdit(){
 
 /* ---------- init ---------- */
 document.getElementById("mapInner").style.width = MAP_ZOOMS[mapZoomIdx] + "%";
-window.addEventListener("resize", updateMinimap);
+window.addEventListener("resize", () => { updateMinimap(); renderHotspots(); });
 MAP_IMG_SEL_MINI.addEventListener("load", updateMinimap);
+viewDir = snapDir(current, viewDir);   // 初期方角に写真が無い地点から始まる場合に備える
 render();
 
 if(EDIT) initEdit();

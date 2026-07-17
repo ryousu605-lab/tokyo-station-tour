@@ -65,7 +65,7 @@ const scenes = {
   /* ---- 新幹線 乗換口（北・中央） ---- */
   shinkansen_north: {
     name: "新幹線北乗換口 前",
-    desc: "東北・上越・北陸新幹線への north のりかえ口。",
+    desc: "東北・上越・北陸新幹線への北のりかえ口。",
     floor: "1F",
     map: {x: 33.7, y: 55.6}, dest: true,
     links: [
@@ -278,7 +278,8 @@ const scenes = {
     links: [
       {to: "b1_yaesu", dir: "forward", label: "八重洲地下中央口へ", x: 50, y: 45},
       {to: "b1_gransta", dir: "left", label: "地下弁当屋前へ", x: 15, y: 58},
-      {to: "central_yaesu", dir: "up", label: "1F 中央通路へ", x: 85, y: 58}
+      {to: "central_yaesu", dir: "up", label: "1F 中央通路へ", x: 85, y: 58},
+      {to: "chika_escalator", dir: "up", label: "1F 丸の内中央口方面へ（エスカレーター）", x: 15, y: 65}
     ]
   },
   b1_gransta: {
@@ -292,3 +293,82 @@ const scenes = {
     ]
   }
 };
+
+/* ---- 公開写真マニフェスト ----
+   tools/sync_scenes.py が photos/*.jpg から自動生成する。手で編集しない。 */
+/* PHOTOS:BEGIN */
+const PHOTOS = new Set([
+  "b1_ginsuzu_e.jpg",
+  "b1_ginsuzu_n.jpg",
+  "b1_ginsuzu_s.jpg",
+  "b1_ginsuzu_w.jpg",
+  "b1_gransta_n.jpg",
+  "b1_gransta_s.jpg",
+  "b1_gransta_w.jpg",
+  "b1_yaesu_e.jpg",
+  "b1_yaesu_w.jpg",
+  "central_center_e.jpg",
+  "central_center_n.jpg",
+  "central_center_s.jpg",
+  "central_center_w.jpg",
+  "central_maru_e.jpg",
+  "central_maru_n.jpg",
+  "central_maru_s.jpg",
+  "central_maru_w.jpg",
+  "central_yaesu_e.jpg",
+  "central_yaesu_n.jpg",
+  "central_yaesu_s.jpg",
+  "central_yaesu_w.jpg",
+  "chika_escalator_e.jpg",
+  "maru_central_e.jpg",
+  "maru_central_w.jpg",
+  "maru_chika_front_w.jpg",
+  "maru_north_e.jpg",
+  "maru_north_s.jpg",
+  "maru_north_w.jpg",
+  "maru_path_north_e.jpg",
+  "maru_path_north_n.jpg",
+  "maru_path_north_s.jpg",
+  "maru_path_south_n.jpg",
+  "maru_path_south_s.jpg",
+  "maru_south_n.jpg",
+  "maru_south_w.jpg",
+  "north_center_e.jpg",
+  "north_center_w.jpg",
+  "north_maru_n.jpg",
+  "north_maru_w.jpg",
+  "north_yaesu_e.jpg",
+  "north_yaesu_s.jpg",
+  "shinkansen_central_e.jpg",
+  "shinkansen_central_n.jpg",
+  "shinkansen_central_s.jpg",
+  "shinkansen_central_w.jpg",
+  "shinkansen_north_n.jpg",
+  "shinkansen_north_s.jpg",
+  "shinkansen_north_w.jpg",
+  "shinkansen_south_bento_e.jpg",
+  "shinkansen_south_bento_n.jpg",
+  "shinkansen_south_bento_s.jpg",
+  "shinkansen_south_bento_w.jpg",
+  "shinkansen_south_west_e.jpg",
+  "shinkansen_south_west_n.jpg",
+  "shinkansen_south_west_s.jpg",
+  "south_maru_e.jpg",
+  "south_maru_w.jpg",
+  "yaesu_central_e.jpg",
+  "yaesu_central_n.jpg",
+  "yaesu_central_s.jpg",
+  "yaesu_central_w.jpg",
+  "yaesu_north_e.jpg",
+  "yaesu_north_plaza_n.jpg",
+  "yaesu_north_plaza_w.jpg",
+  "yaesu_north_w.jpg",
+  "yaesu_south_bento_e.jpg",
+  "yaesu_south_bento_s.jpg",
+  "yaesu_south_shinkansen_bento_n.jpg",
+  "yaesu_south_shinkansen_bento_w.jpg",
+  "yaesu_south_shinkansen_n.jpg",
+  "yaesu_south_shinkansen_s.jpg",
+  "yaesu_south_shinkansen_w.jpg",
+]);
+/* PHOTOS:END */

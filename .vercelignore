@@ -11,7 +11,6 @@ faces.json
 photo-exif.js
 tools/
 photo-audit.html
-face_review.html
 1F配置案_確認用.png
 maps/1f_new.png
 photos_renamed/
@@ -21,3 +20,4 @@ New/
 tools/face_detection_yunet_2023mar.onnx
 tools/faces.js
 実装計画v3.md
+OPUS引き継ぎ計画書.md

@@ -36,8 +36,7 @@ const scenes = {
     map: {x: 31, y: 42}, dest: false,
     links: [
       {to: "north_center", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
-      {to: "yaesu_north", dir: "back", label: "八重洲北口へ戻る", x: 50, y: 86},
-      {to: "shinkansen_north", dir: "left", label: "新幹線北乗換口へ", x: 15, y: 58}
+      {to: "yaesu_north", dir: "back", label: "八重洲北口へ戻る", x: 50, y: 86}
     ]
   },
   north_center: {
@@ -48,6 +47,7 @@ const scenes = {
     links: [
       {to: "north_maru", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
       {to: "north_yaesu", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86},
+      {to: "shinkansen_north", dir: "left", label: "新幹線北乗換口へ", x: 15, y: 58},
       {to: "b1_gransta", dir: "down", label: "地下弁当屋前へ（B1）", x: 85, y: 58}
     ]
   },
@@ -69,7 +69,7 @@ const scenes = {
     floor: "1F",
     map: {x: 33.7, y: 55.6}, dest: true,
     links: [
-      {to: "north_yaesu", dir: "back", label: "北通路へ戻る", x: 50, y: 86}
+      {to: "north_center", dir: "back", label: "北通路へ戻る", x: 50, y: 86}
     ]
   },
   shinkansen_central: {
@@ -121,7 +121,8 @@ const scenes = {
     map: {x: 52.3, y: 75.7}, dest: false,
     links: [
       {to: "maru_central", dir: "forward", label: "丸の内中央口へ", x: 50, y: 45},
-      {to: "central_center", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86}
+      {to: "central_center", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86},
+      {to: "chika_escalator", dir: "left", label: "地下入口（エスカレーター）へ", x: 15, y: 58}
     ]
   },
 
@@ -164,7 +165,6 @@ const scenes = {
     links: [
       {to: "central_maru", dir: "back", label: "中央通路へ戻る", x: 50, y: 86},
       {to: "maru_chika_front", dir: "right", label: "丸の内北口方面", x: 85, y: 58},
-      {to: "chika_escalator", dir: "forward", label: "地下入口（エスカレーター）へ", x: 50, y: 45},
       {to: "maru_path_south", dir: "left", label: "丸の内南口方面", x: 15, y: 58}
     ]
   },
@@ -174,7 +174,7 @@ const scenes = {
     floor: "1F",
     map: {x: 51.5, y: 69.4}, dest: false,
     links: [
-      {to: "maru_central", dir: "back", label: "丸の内中央口へ戻る", x: 50, y: 86},
+      {to: "central_maru", dir: "back", label: "中央通路（丸の内寄り）へ戻る", x: 50, y: 86},
       {to: "b1_ginsuzu", dir: "down", label: "地下銀の鈴へ（B1）", x: 50, y: 65}
     ]
   },
@@ -236,7 +236,7 @@ const scenes = {
     floor: "1F",
     map: {x: 72.2, y: 54.9}, dest: false,
     links: [
-      {to: "yaesu_south_bento", dir: "forward", label: "八重洲南口周辺 弁当屋へ", x: 50, y: 45},
+      {to: "yaesu_south_shinkansen", dir: "forward", label: "八重洲南口周辺（新幹線・南寄り）へ", x: 50, y: 45},
       {to: "shinkansen_south_bento", dir: "back", label: "新幹線南乗換口 弁当屋前へ戻る", x: 50, y: 86}
     ]
   },
@@ -246,8 +246,7 @@ const scenes = {
     floor: "1F",
     map: {x: 78.9, y: 37.8}, dest: true,
     links: [
-      {to: "yaesu_south_shinkansen", dir: "forward", label: "八重洲南口周辺（新幹線・南寄り）へ", x: 50, y: 45},
-      {to: "yaesu_south_shinkansen_bento", dir: "back", label: "新幹線口弁当屋へ戻る", x: 50, y: 86}
+      {to: "yaesu_south_shinkansen", dir: "back", label: "八重洲南口周辺（新幹線・南寄り）へ戻る", x: 50, y: 86}
     ]
   },
   yaesu_south_shinkansen: {
@@ -256,7 +255,8 @@ const scenes = {
     floor: "1F",
     map: {x: 75, y: 45.9}, dest: true,
     links: [
-      {to: "yaesu_south_bento", dir: "back", label: "八重洲南口周辺 弁当屋へ戻る", x: 50, y: 86}
+      {to: "yaesu_south_bento", dir: "forward", label: "八重洲南口周辺 弁当屋へ", x: 50, y: 45},
+      {to: "yaesu_south_shinkansen_bento", dir: "back", label: "新幹線口弁当屋へ戻る", x: 50, y: 86}
     ]
   },
 
@@ -279,7 +279,7 @@ const scenes = {
       {to: "b1_yaesu", dir: "forward", label: "八重洲地下中央口へ", x: 50, y: 45},
       {to: "b1_gransta", dir: "left", label: "地下弁当屋前へ", x: 15, y: 58},
       {to: "central_yaesu", dir: "up", label: "1F 中央通路へ", x: 85, y: 58},
-      {to: "chika_escalator", dir: "up", label: "1F 丸の内中央口方面へ（エスカレーター）", x: 15, y: 65}
+      {to: "chika_escalator", dir: "up", label: "1F 中央通路（丸の内寄り）へ（エスカレーター）", x: 15, y: 65}
     ]
   },
   b1_gransta: {

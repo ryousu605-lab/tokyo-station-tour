@@ -186,6 +186,9 @@
   #navBar{
     position:absolute; left:50%; transform:translateX(-50%);
     bottom:calc(env(safe-area-inset-bottom, 0px) + 140px);
+    /* left:50% の絶対配置は既定の幅が「画面の右半分」に制限される。max-content を
+       与えないとチップ2個で内容が半分に押し込められ、見切れて横スクロールが要る。 */
+    width:max-content;
     max-width:calc(100vw - 28px);
     display:flex; gap:8px; overflow-x:auto; z-index:7;
     -webkit-overflow-scrolling:touch; scrollbar-width:none;
@@ -240,6 +243,8 @@
     background:var(--brass);
     color:var(--ink);
   }
+  /* 写真の無い方角。消さずに薄く残して「欠けている方角」を示す */
+  #compass .dirBtn.void{opacity:.18;}
   #compass .dirBtn[data-dir="n"]{top:-4px; left:50%; transform:translateX(-50%);}
   #compass .dirBtn[data-dir="e"]{right:-4px; top:50%; transform:translateY(-50%);}
   #compass .dirBtn[data-dir="s"]{bottom:-4px; left:50%; transform:translateX(-50%);}
@@ -280,6 +285,9 @@
   .turnBtn:hover{background:rgba(28,27,25,0.72);}
   .turnBtn.left{left:0; border-left:none; border-radius:0 14px 14px 0;}
   .turnBtn.right{right:0; border-right:none; border-radius:14px 0 0 14px;}
+  /* その先に写真が無い＝これ以上その向きへは回れない */
+  .turnBtn:disabled{opacity:.25; cursor:default;}
+  .turnBtn:disabled:hover{background:rgba(28,27,25,0.45);}
 
   /* ---------- mini map ---------- */
   #minimap{
@@ -569,12 +577,12 @@
   <div id="howtoBtn" onclick="document.getElementById('howtoPanel').classList.toggle('open')">?  使い方・写真の入れ方</div>
   <div id="howtoPanel">
     <h2>操作方法</h2>
-    写真上の大きな矢印は「いま見えている方向にある行き先」、金色の階段ボタンは「階の上り下り」です。画面下のチップは、いま背中側にある行き先（↩は来た道を戻る）。画面の左右端「‹ ›」で視点を回転すると、背中側の行き先も正面の矢印に変わります。移動すると自動的に進んだ方向を向きます。右下のミニマップをタップすると構内図全体が開きます。
+    写真上の大きな矢印は「いま見えている方向にある行き先」、金色の階段ボタンは「階の上り下り」です。画面下のチップは、いま背中側にある行き先（↩は来た道を戻る）。画面の左右端「‹ ›」で視点を回転すると、背中側の行き先も正面の矢印に変わります。回れるのは写真のある方角までで、その先が無い側のボタンは薄くなって止まります（ぐるぐる回り続けません）。左下のコンパスは、いま向いている方角が金色、写真の無い方角が薄い文字です。移動すると自動的に進んだ方向を向きます。右下のミニマップをタップすると構内図全体が開きます。
     <h2>写真の入れ方</h2>
     このHTMLと同じ場所に <code>photos</code> フォルダを作り、以下の名前で入れるだけで自動反映されます。<br>
     ・四方向: <code>photos/地点ID_n.jpg</code>（北）、<code>_e</code>（東）、<code>_s</code>（南）、<code>_w</code>（西）<br>
     ・1枚だけの場合: <code>photos/地点ID.jpg</code>（全方向で表示）<br>
-    写真のある方向だけを見られます（未撮影の方向は回転で飛ばします）。写真を足したら <code>python tools/sync_scenes.py</code> で一覧を作り直してください。撮影予定のファイル名は <code>?edit</code> で開くと確認できます。詳細は同梱の「撮影リスト.md」を参照。
+    写真のある方向だけを見られます（未撮影の方向へは回転できず、端で止まります）。写真を足したら <code>python tools/sync_scenes.py</code> で一覧を作り直してください。撮影予定のファイル名は <code>?edit</code> で開くと確認できます。詳細は同梱の「撮影リスト.md」を参照。
     <h2>位置の微調整</h2>
     地点データはこのHTML内の <code>const scenes = {...}</code> に内蔵されています（iPhone等でも確実に開けるよう単一ファイル化）。<code>map:{x,y}</code> は構内図上の位置（%）です。矢印の向き・位置は構内図上の移動方向から自動計算されるため、通常は調整不要です（階の上り下りのみ <code>x,y</code> で位置指定）。
   </div>
@@ -651,8 +659,7 @@ const scenes = {
     map: {x: 31, y: 42}, dest: false,
     links: [
       {to: "north_center", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
-      {to: "yaesu_north", dir: "back", label: "八重洲北口へ戻る", x: 50, y: 86},
-      {to: "shinkansen_north", dir: "left", label: "新幹線北乗換口へ", x: 15, y: 58}
+      {to: "yaesu_north", dir: "back", label: "八重洲北口へ戻る", x: 50, y: 86}
     ]
   },
   north_center: {
@@ -663,6 +670,7 @@ const scenes = {
     links: [
       {to: "north_maru", dir: "forward", label: "丸の内方面へ進む", x: 50, y: 45},
       {to: "north_yaesu", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86},
+      {to: "shinkansen_north", dir: "left", label: "新幹線北乗換口へ", x: 15, y: 58},
       {to: "b1_gransta", dir: "down", label: "地下弁当屋前へ（B1）", x: 85, y: 58}
     ]
   },
@@ -684,7 +692,7 @@ const scenes = {
     floor: "1F",
     map: {x: 33.7, y: 55.6}, dest: true,
     links: [
-      {to: "north_yaesu", dir: "back", label: "北通路へ戻る", x: 50, y: 86}
+      {to: "north_center", dir: "back", label: "北通路へ戻る", x: 50, y: 86}
     ]
   },
   shinkansen_central: {
@@ -736,7 +744,8 @@ const scenes = {
     map: {x: 52.3, y: 75.7}, dest: false,
     links: [
       {to: "maru_central", dir: "forward", label: "丸の内中央口へ", x: 50, y: 45},
-      {to: "central_center", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86}
+      {to: "central_center", dir: "back", label: "八重洲方面へ戻る", x: 50, y: 86},
+      {to: "chika_escalator", dir: "left", label: "地下入口（エスカレーター）へ", x: 15, y: 58}
     ]
   },
 
@@ -779,7 +788,6 @@ const scenes = {
     links: [
       {to: "central_maru", dir: "back", label: "中央通路へ戻る", x: 50, y: 86},
       {to: "maru_chika_front", dir: "right", label: "丸の内北口方面", x: 85, y: 58},
-      {to: "chika_escalator", dir: "forward", label: "地下入口（エスカレーター）へ", x: 50, y: 45},
       {to: "maru_path_south", dir: "left", label: "丸の内南口方面", x: 15, y: 58}
     ]
   },
@@ -789,7 +797,7 @@ const scenes = {
     floor: "1F",
     map: {x: 51.5, y: 69.4}, dest: false,
     links: [
-      {to: "maru_central", dir: "back", label: "丸の内中央口へ戻る", x: 50, y: 86},
+      {to: "central_maru", dir: "back", label: "中央通路（丸の内寄り）へ戻る", x: 50, y: 86},
       {to: "b1_ginsuzu", dir: "down", label: "地下銀の鈴へ（B1）", x: 50, y: 65}
     ]
   },
@@ -851,7 +859,7 @@ const scenes = {
     floor: "1F",
     map: {x: 72.2, y: 54.9}, dest: false,
     links: [
-      {to: "yaesu_south_bento", dir: "forward", label: "八重洲南口周辺 弁当屋へ", x: 50, y: 45},
+      {to: "yaesu_south_shinkansen", dir: "forward", label: "八重洲南口周辺（新幹線・南寄り）へ", x: 50, y: 45},
       {to: "shinkansen_south_bento", dir: "back", label: "新幹線南乗換口 弁当屋前へ戻る", x: 50, y: 86}
     ]
   },
@@ -861,8 +869,7 @@ const scenes = {
     floor: "1F",
     map: {x: 78.9, y: 37.8}, dest: true,
     links: [
-      {to: "yaesu_south_shinkansen", dir: "forward", label: "八重洲南口周辺（新幹線・南寄り）へ", x: 50, y: 45},
-      {to: "yaesu_south_shinkansen_bento", dir: "back", label: "新幹線口弁当屋へ戻る", x: 50, y: 86}
+      {to: "yaesu_south_shinkansen", dir: "back", label: "八重洲南口周辺（新幹線・南寄り）へ戻る", x: 50, y: 86}
     ]
   },
   yaesu_south_shinkansen: {
@@ -871,7 +878,8 @@ const scenes = {
     floor: "1F",
     map: {x: 75, y: 45.9}, dest: true,
     links: [
-      {to: "yaesu_south_bento", dir: "back", label: "八重洲南口周辺 弁当屋へ戻る", x: 50, y: 86}
+      {to: "yaesu_south_bento", dir: "forward", label: "八重洲南口周辺 弁当屋へ", x: 50, y: 45},
+      {to: "yaesu_south_shinkansen_bento", dir: "back", label: "新幹線口弁当屋へ戻る", x: 50, y: 86}
     ]
   },
 
@@ -894,7 +902,7 @@ const scenes = {
       {to: "b1_yaesu", dir: "forward", label: "八重洲地下中央口へ", x: 50, y: 45},
       {to: "b1_gransta", dir: "left", label: "地下弁当屋前へ", x: 15, y: 58},
       {to: "central_yaesu", dir: "up", label: "1F 中央通路へ", x: 85, y: 58},
-      {to: "chika_escalator", dir: "up", label: "1F 丸の内中央口方面へ（エスカレーター）", x: 15, y: 65}
+      {to: "chika_escalator", dir: "up", label: "1F 中央通路（丸の内寄り）へ（エスカレーター）", x: 15, y: 65}
     ]
   },
   b1_gransta: {
@@ -1118,13 +1126,42 @@ function swapLayers(next, prev){
   activeLayer = (next.id === "layerA") ? "A" : "B";
 }
 
-// 画面端ボタンで視点を回転（時計回り。写真のある方角だけを巡り、無い方角は飛ばす）
-function turnView(step){
+// 写真のある方角を「弧」として並べて返す（時計回り）。全方角そろっていれば null＝一周可。
+// 写真の無い区間のうち最大の空きで円環を切り開く。こうして端を作ることで、
+// 回転が永遠に回り続けて自分の向きを見失うのを防ぐ。
+function turnArc(id){
+  const dirs = availableDirs(id);   // DIRS 順＝時計回り
+  if(dirs.length >= 4 || dirs.length <= 1) return null;
+  let cut = 0, gapMax = -1;
+  for(let i = 0; i < dirs.length; i++){
+    const a = COMPASS_FROM_N[dirs[i]];
+    const b = COMPASS_FROM_N[dirs[(i + 1) % dirs.length]];
+    const gap = (b - a + 360) % 360;
+    if(gap > gapMax){ gapMax = gap; cut = (i + 1) % dirs.length; }
+  }
+  return dirs.slice(cut).concat(dirs.slice(0, cut));   // 最大の空きの直後から並べる
+}
+
+// step(-1=左, +1=右) 方向に回転した先の方角。弧の端でそれ以上回れないなら null。
+function turnTarget(step){
   const dirs = availableDirs(current);
-  if(dirs.length <= 1) return;
-  const i = dirs.indexOf(viewDir);
-  turnStep = step;
-  setDir(dirs[(i + step + dirs.length) % dirs.length]);
+  if(dirs.length <= 1) return null;
+  const arc = turnArc(current);
+  if(!arc){                                  // 全方角に写真あり: 従来どおり一周できる
+    const i = dirs.indexOf(viewDir);
+    return dirs[(i + step + dirs.length) % dirs.length];
+  }
+  const i = arc.indexOf(viewDir) + step;
+  return (i < 0 || i >= arc.length) ? null : arc[i];
+}
+
+// 画面端ボタンで視点を回転（写真のある方角のみ。弧の端に達したら止まる）
+function turnView(step){
+  const d = turnTarget(step);
+  if(!d) return;
+  // またいだ 90° の数だけスライドを強める（180°反転を90°回転と見分けられるように）
+  turnStep = step * Math.max(1, Math.round(dirGap(viewDir, d) / 90));
+  setDir(d);
 }
 
 /* ---------- render ---------- */
@@ -1269,13 +1306,17 @@ function renderCompass(){
   const comp = document.getElementById("compass");
   comp.classList.add("on");
   comp.querySelectorAll(".dirBtn").forEach(b => {
-    b.style.display = dirs.includes(b.dataset.dir) ? "flex" : "none";
+    // 写真の無い方角も薄く残す。四方角が常に同じ位置に見えることで、いま
+    // どちらを向いているか・どの方角が欠けているかが一目で分かる。
+    b.classList.toggle("void", !dirs.includes(b.dataset.dir));
     b.classList.toggle("active", b.dataset.dir === viewDir);
   });
   comp.querySelector(".center .big").textContent = DIR_LABEL[viewDir];
-  // 見られる方角が1つだけなら回転ボタン自体を出さない
-  document.querySelectorAll(".turnBtn").forEach(b =>
-    b.style.display = dirs.length > 1 ? "flex" : "none");
+  // 見られる方角が1つだけなら回転ボタン自体を出さない。弧の端では押せなくする。
+  document.querySelectorAll(".turnBtn").forEach(b => {
+    b.style.display = dirs.length > 1 ? "flex" : "none";
+    b.disabled = turnTarget(b.classList.contains("left") ? -1 : 1) === null;
+  });
 }
 
 function render(){

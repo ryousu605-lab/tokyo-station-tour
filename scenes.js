@@ -1,6 +1,8 @@
+/* image は全体マップ用の原寸(3368px)。mini はミニマップ用の縮小版で、初回表示を
+   軽くするために使う（tools/make_mini_maps.py が image から生成する）。 */
 const MAPS = {
-  "1F": { image: "maps/1f.png", width: 3368, height: 2382, label: "1F" },
-  "B1": { image: "maps/b1.png", width: 3368, height: 2382, label: "B1" }
+  "1F": { image: "maps/1f.png", mini: "maps/1f_mini.png", width: 3368, height: 2382, label: "1F" },
+  "B1": { image: "maps/b1.png", mini: "maps/b1_mini.png", width: 3368, height: 2382, label: "B1" }
 };
 const startId = "yaesu_central";
 

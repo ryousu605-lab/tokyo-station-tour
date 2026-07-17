@@ -47,8 +47,11 @@
     transform:translateX(0);
     transition:opacity .45s ease, transform .45s ease;
     display:flex; align-items:flex-start; justify-content:center;
+    /* 消えた側のレイヤーは透明なだけで残っている。当たり判定も消さないと、
+       前に出していた「再読み込み」ボタン等が見えないままタップを奪う。 */
+    pointer-events:none;
   }
-  .photoLayer.show{opacity:1;}
+  .photoLayer.show{opacity:1; pointer-events:auto;}
   #tint{
     position:absolute; inset:0;
     background:linear-gradient(180deg, rgba(28,27,25,0.55) 0%, rgba(28,27,25,0) 22%, rgba(28,27,25,0) 55%, rgba(28,27,25,0.62) 100%);
@@ -84,6 +87,28 @@
     display:inline-block;
   }
   .missing p{font-size:10.5px; opacity:.6; margin-top:7px; line-height:1.5;}
+  .missing .retry{
+    font:inherit; font-size:13px; font-weight:700;
+    color:var(--paper); background:rgba(237,234,227,0.12);
+    border:1px solid rgba(237,234,227,0.45);
+    border-radius:6px; padding:8px 18px; cursor:pointer;
+  }
+
+  /* ---------- loading ---------- */
+  /* 写真は地点名より遅れて届く。すぐ出ると点滅がうるさいので、遅い時だけ出す（showPhoto）。 */
+  #loading{
+    position:absolute; top:50%; left:50%;
+    width:34px; height:34px; margin:-17px 0 0 -17px;
+    z-index:3;
+    border:2.5px solid rgba(237,234,227,0.25);
+    border-top-color:var(--brass);
+    border-radius:50%;
+    display:none;
+    animation:spin .8s linear infinite;
+    pointer-events:none;
+  }
+  #loading.on{display:block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
 
   /* ---------- top bar ---------- */
   #topbar{
@@ -91,9 +116,13 @@
     padding:calc(env(safe-area-inset-top, 0px) + 12px) 14px 12px;
     display:flex; align-items:center; gap:12px;
     z-index:8;
+    /* 横持ちでは矢印がこの帯と重なる。帯自体はタップを受けないようにして、
+       矢印の上半分が押せなくなるのを防ぐ（避ける配置は obstacleRects が行う）。 */
+    pointer-events:none;
   }
   #backBtn{
     flex:none;
+    pointer-events:auto;
     width:42px; height:42px;
     border-radius:50%;
     border:1.5px solid rgba(237,234,227,0.45);
@@ -114,17 +143,25 @@
     color:var(--brass);
     text-transform:uppercase;
   }
+  /* 「中央通路（八重洲寄り・駅弁屋 祭 前）」のような長い地点名は1行では末尾が切れて
+     どこの写真か分からなくなる。2行まで見せて、それ以上だけ省略する。 */
   #topTitle h1{
     font-family:'Zen Old Mincho', serif;
     font-weight:700;
     font-size:clamp(18px, 5vw, 30px);
     line-height:1.25;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
   }
   #topTitle .desc{
     font-size:11.5px;
     opacity:.75;
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
   }
 
   /* ---------- hotspots ---------- */
@@ -143,6 +180,12 @@
     gap:6px;
     cursor:pointer;
     pointer-events:auto;
+    /* <button> なのでブラウザ既定の外観を消す（キーボード操作・読み上げのため要素は button） */
+    border:none; background:none; padding:0; font:inherit; color:inherit;
+  }
+  .hotspot:focus-visible, .navChip:focus-visible, .pin:focus-visible{
+    outline:3px solid var(--brass);
+    outline-offset:3px;
   }
   .hotspot .arrow{
     width:76px; height:76px;
@@ -170,9 +213,12 @@
   }
   .hotspot.stairs .arrow{background:rgba(166,135,60,0.85); border-color:#fff;}
 
-  /* 縦持ちでは写真帯が画面高の約1/3しかない。矢印とラベルを一回り小さくして
-     この帯の中に重なりなく収める（配置の分離は renderHotspots が行う）。 */
-  @media (max-width:520px){
+  /* 縦持ちでは写真帯が画面高の約1/3しかなく、横持ちでは帯は広くても上下のUIに挟まれて
+     矢印を置ける高さが狭い。どちらも矢印とラベルを一回り小さくし、ラベルを折り返して
+     この隙間に重なりなく収める（配置の分離は renderHotspots が行う）。
+     とくに横持ちでは「1F 新幹線南乗換口（西寄り）へ（エスカレーター）」のような長い
+     ラベルが1行のまま300px超になり、折り返さないと分離しきれない。 */
+  @media (max-width:520px), (max-height:520px){
     .hotspot .arrow{width:58px; height:58px;}
     .hotspot .arrow svg{width:27px; height:27px;}
     .hotspot .tag{
@@ -183,11 +229,15 @@
   }
 
   /* ---------- nav bar（背後・真横の行き先チップ） ---------- */
+  /* チップの帯はミニマップより下の層にあり、横に並ぶと右端がミニマップの下に潜り込んで、
+     押すと構内図が開いてしまう。ミニマップ(高さ141px)の上端より上に置いて重なりを断つ。
+     幅を削って避けると、行き先チップ2個(計342px)が375px幅に収まらず横スクロールが要る
+     ＝背中側の行き先が見えなくなるので、幅ではなく高さで避ける。
+     left:50% の絶対配置は既定の幅が「画面の右半分」に制限される。max-content を
+     与えないとチップ2個で内容が半分に押し込められ、見切れて横スクロールが要る。 */
   #navBar{
     position:absolute; left:50%; transform:translateX(-50%);
-    bottom:calc(env(safe-area-inset-bottom, 0px) + 140px);
-    /* left:50% の絶対配置は既定の幅が「画面の右半分」に制限される。max-content を
-       与えないとチップ2個で内容が半分に押し込められ、見切れて横スクロールが要る。 */
+    bottom:calc(env(safe-area-inset-bottom, 0px) + 166px);
     width:max-content;
     max-width:calc(100vw - 28px);
     display:flex; gap:8px; overflow-x:auto; z-index:7;
@@ -199,7 +249,9 @@
     border:1px solid rgba(237,234,227,0.4);
     background:rgba(28,27,25,0.72); color:var(--paper);
     border-radius:19px; height:38px; padding:0 14px;
+    font:inherit;
     font-size:12.5px; font-weight:700; cursor:pointer;
+    white-space:nowrap;
     -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);
   }
   .navChip .ic{font-size:14px; color:var(--brass);}
@@ -213,6 +265,9 @@
     width:116px; height:116px;
     z-index:7;
     display:none;
+    /* 表示専用（方角の切替は画面端の回転ボタン）。矢印より上の層なので、当たり判定を
+       残すと隅がわずかに重なっただけで矢印のタップを奪ってしまう。 */
+    pointer-events:none;
   }
   #compass.on{display:block;}
   #compass .ring{
@@ -413,6 +468,7 @@
     display:flex; flex-direction:column; align-items:center;
     cursor:pointer;
     z-index:2;
+    border:none; background:none; padding:0; font:inherit; color:inherit;
   }
   .pin .dot{
     width:15px; height:15px;
@@ -458,7 +514,7 @@
   #howtoBtn{
     position:absolute;
     left:14px;
-    bottom:calc(env(safe-area-inset-bottom, 0px) + 190px);
+    bottom:calc(env(safe-area-inset-bottom, 0px) + 216px);   /* 行き先チップの帯の上 */
     z-index:8;
     font-family:'JetBrains Mono', monospace;
     font-size:10.5px;
@@ -474,7 +530,7 @@
   #howtoPanel{
     display:none;
     position:absolute; left:14px; right:14px;
-    bottom:calc(env(safe-area-inset-bottom, 0px) + 236px);
+    bottom:calc(env(safe-area-inset-bottom, 0px) + 262px);
     z-index:9;
     max-width:400px;
     max-height:62vh;
@@ -487,6 +543,8 @@
     line-height:1.75;
   }
   #howtoPanel.open{display:block;}
+  #howtoDev{display:none;}
+  .editing #howtoDev{display:block;}
   #howtoPanel h2{
     font-family:'Zen Old Mincho', serif;
     font-size:15px;
@@ -505,7 +563,33 @@
   @media (min-width:768px){
     #minimap{width:170px;}
     #minimap .frame{width:170px; height:170px;}
+    /* ミニマップが 170px に育つ分、チップの帯も上げて重なりを避ける */
+    #navBar{bottom:calc(env(safe-area-inset-bottom, 0px) + 214px);}
+    #howtoBtn{bottom:calc(env(safe-area-inset-bottom, 0px) + 264px);}
+    #howtoPanel{bottom:calc(env(safe-area-inset-bottom, 0px) + 310px);}
     #mapInner{width:120%;}
+  }
+
+  /* 横持ちのスマホ（画面が低い）。回転ボタンは画面の左右端に貼り付いているので、
+     下部のUIを画面端から内側へ寄せないと重なって押せなくなる。写真の帯も狭いので
+     ミニマップとコンパスは一回り小さくし、説明文は畳む。
+     ※ min-width:768px の後に置くこと（横持ちの幅は 768px を超えるため上書きが要る） */
+  @media (orientation:landscape) and (max-height:520px){
+    #topTitle .desc{display:none;}
+    #topTitle h1{-webkit-line-clamp:1; font-size:clamp(16px, 3.4vh, 22px);}
+    #minimap{right:58px; width:104px;}
+    #minimap .frame{width:104px; height:104px;}
+    #compass{width:96px; height:96px;}
+    #compass .dirBtn{width:34px; height:34px; font-size:14px;}
+    /* 左右端の回転ボタンを避けて内側へ */
+    #howtoBtn{left:58px; bottom:calc(env(safe-area-inset-bottom, 0px) + 120px);}
+    #howtoPanel{left:58px; bottom:calc(env(safe-area-inset-bottom, 0px) + 162px); max-height:52vh;}
+    /* 行き先チップはコンパス(左下)とミニマップ(右下)の谷間＝最下段の中央へ。
+       縦持ちのように上へ逃がすと、矢印を置ける中央の帯を塞いでしまうため。 */
+    #navBar{
+      bottom:calc(env(safe-area-inset-bottom, 0px) + 12px);
+      max-width:calc(100vw - 340px);
+    }
   }
 
   /* ---------- edit mode ---------- */
@@ -539,6 +623,7 @@
 <div id="stage">
   <div class="photoLayer" id="layerA"></div>
   <div class="photoLayer" id="layerB"></div>
+  <div id="loading" role="status" aria-label="写真を読み込み中"></div>
   <div id="tint"></div>
 
   <div id="topbar">
@@ -567,24 +652,27 @@
 
   <div id="minimap" onclick="openMap()">
     <div class="frame">
-      <img id="miniImg" src="maps/1f.png" alt="構内図">
+      <img id="miniImg" src="maps/1f_mini.png" alt="構内図">
       <div id="miniCone"></div>
       <div id="miniDot"></div>
     </div>
     <div class="hint">タップで構内図</div>
   </div>
 
-  <div id="howtoBtn" onclick="document.getElementById('howtoPanel').classList.toggle('open')">?  使い方・写真の入れ方</div>
+  <div id="howtoBtn" onclick="document.getElementById('howtoPanel').classList.toggle('open')">?  使い方</div>
   <div id="howtoPanel">
     <h2>操作方法</h2>
-    写真上の大きな矢印は「いま見えている方向にある行き先」、金色の階段ボタンは「階の上り下り」です。画面下のチップは、いま背中側にある行き先（↷↶はどちら回りに振り向くか）。画面の左右端「‹ ›」で視点を回転すると、背中側の行き先も正面の矢印に変わります。回れるのは写真のある方角までで、その先が無い側のボタンは薄くなって止まります。左下のコンパスは、いま向いている方角が金色、写真の無い方角が薄い文字です。移動すると自動的に進んだ方向を向きます。右下のミニマップをタップすると構内図全体が開きます。
-    <h2>写真の入れ方</h2>
-    このHTMLと同じ場所に <code>photos</code> フォルダを作り、以下の名前で入れるだけで自動反映されます。<br>
-    ・四方向: <code>photos/地点ID_n.jpg</code>（北）、<code>_e</code>（東）、<code>_s</code>（南）、<code>_w</code>（西）<br>
-    ・1枚だけの場合: <code>photos/地点ID.jpg</code>（全方向で表示）<br>
-    写真のある方向だけを見られます（未撮影の方向へは回転できず、端で止まります）。写真を足したら <code>python tools/sync_scenes.py</code> で一覧を作り直してください。撮影予定のファイル名は <code>?edit</code> で開くと確認できます。詳細は同梱の「撮影リスト.md」を参照。
-    <h2>位置の微調整</h2>
-    地点データはこのHTML内の <code>const scenes = {...}</code> に内蔵されています（iPhone等でも確実に開けるよう単一ファイル化）。<code>map:{x,y}</code> は構内図上の位置（%）です。矢印の向き・位置は構内図上の移動方向から自動計算されるため、通常は調整不要です（階の上り下りのみ <code>x,y</code> で位置指定）。
+    写真上の大きな矢印は「いま見えている方向にある行き先」、金色の階段ボタンは「階の上り下り」です。画面下のチップは、いま背中側にある行き先（↷↶はどちら回りに振り向くか）。画面の左右端「‹ ›」で視点を回転すると、背中側の行き先も正面の矢印に変わります。回れるのは写真のある方角までで、その先が無い側のボタンは薄くなって止まります。左下のコンパスは、いま向いている方角が金色、写真の無い方角が薄い文字です。移動すると自動的に進んだ方向を向きます。右下のミニマップをタップすると構内図全体が開きます。ひとつ前の場所へは左上の ← で戻れます。
+    <!-- 以下は撮影・データ更新をする人向け。案内される側には不要なので ?edit のときだけ出す。 -->
+    <div id="howtoDev">
+      <h2>写真の入れ方</h2>
+      このHTMLと同じ場所に <code>photos</code> フォルダを作り、以下の名前で入れるだけで自動反映されます。<br>
+      ・四方向: <code>photos/地点ID_n.jpg</code>（北）、<code>_e</code>（東）、<code>_s</code>（南）、<code>_w</code>（西）<br>
+      ・1枚だけの場合: <code>photos/地点ID.jpg</code>（全方向で表示）<br>
+      通常表示では写真のある方向だけを見られます（未撮影の方向へは回転できず、端で止まります）。<code>?edit</code> では四方角すべてに回転でき、未撮影の方角では撮影予定のファイル名が表示されます。写真を足したら <code>python tools/sync_scenes.py</code> で一覧を作り直してください。詳細は同梱の「撮影リスト.md」を参照。
+      <h2>位置の微調整</h2>
+      地点データはこのHTML内の <code>const scenes = {...}</code> に内蔵されています（iPhone等でも確実に開けるよう単一ファイル化）。<code>map:{x,y}</code> は構内図上の位置（%）です。矢印の向き・位置は構内図上の移動方向から自動計算されるため、通常は調整不要です（階の上り下りのみ <code>x,y</code> で位置指定）。
+    </div>
   </div>
 </div>
 
@@ -604,7 +692,9 @@
   </div>
   <div id="mapScroll">
     <div id="mapInner">
-      <img id="bigMapImg" src="maps/1f.png" alt="東京駅構内図">
+      <!-- src は openMap まで空。原寸の構内図(1.8MB)を初回表示の邪魔にしない
+           （ミニマップは maps/*_mini.png を使うので、ここが唯一の原寸読込になる） -->
+      <img id="bigMapImg" alt="東京駅構内図">
       <svg id="trailSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
       <!-- pins injected by JS -->
     </div>
@@ -621,9 +711,11 @@
      真っ白になることがあるため、単一ファイルで確実に開けるようにしている。
      データの正本は scenes.js。編集後に tools/sync_scenes.py で反映する（このブロックは直接編集しない）。 -->
 <script id="scenesData">
+/* image は全体マップ用の原寸(3368px)。mini はミニマップ用の縮小版で、初回表示を
+   軽くするために使う（tools/make_mini_maps.py が image から生成する）。 */
 const MAPS = {
-  "1F": { image: "maps/1f.png", width: 3368, height: 2382, label: "1F" },
-  "B1": { image: "maps/b1.png", width: 3368, height: 2382, label: "B1" }
+  "1F": { image: "maps/1f.png", mini: "maps/1f_mini.png", width: 3368, height: 2382, label: "1F" },
+  "B1": { image: "maps/b1.png", mini: "maps/b1_mini.png", width: 3368, height: 2382, label: "B1" }
 };
 const startId = "yaesu_central";
 
@@ -1019,8 +1111,12 @@ let current = startId;
 function curMap(){ return MAPS[scenes[current].floor]; }
 let mapFloor = scenes[startId].floor;   // 全体マップで表示中のフロア
 let viewDir = "n";            // 目的地シーンで向いている方角
-let history = [startId];
-let visited = [startId];      // ルート軌跡（全体マップに線で表示）
+// 来た道（← ボタン用）。window.history を隠さないよう別名にしている。
+let navPath = [startId];
+// ルート軌跡（全体マップに線で表示）。構内図からのジャンプは null で区切り、
+// 歩いていない直線が引かれないようにする。
+let visited = [startId];
+const NAVPATH_MAX = 200, VISITED_MAX = 400;   // 長時間の利用で配列が際限なく伸びないように
 let activeLayer = "A";
 let mapZoomIdx = 0;
 const MAP_ZOOMS = [100, 180, 300]; // 全体マップの幅(%)。初期は100%=横幅フィットで全体を見やすく
@@ -1039,6 +1135,12 @@ function availableDirs(id){
   const dirs = DIRS.filter(d => PHOTOS.has(`${id}_${d}.jpg`));
   if(dirs.length) return dirs;
   return PHOTOS.has(`${id}.jpg`) ? DIRS.slice() : [];
+}
+
+// 回転できる方角。?edit では未撮影の方角にも回れる（撮影予定のファイル名を確認するため）。
+// コンパスの「欠けている方角」表示は availableDirs のままなので、編集中も何が未撮影か分かる。
+function turnDirs(id){
+  return EDIT ? DIRS.slice() : availableDirs(id);
 }
 
 // 2 方角の角度差（0〜180）
@@ -1075,27 +1177,48 @@ function layoutHotspotArea(){
 }
 
 let photoGen = 0;   // 画像ロードの世代。回転を連打しても古いロードが後勝ちしないようにする
+let loadTimer = 0;
+
+// その地点・方角の写真が公開一覧にあるか（＝「未撮影」と「読み込み失敗」の区別）
+function photoPlanned(id, dir){
+  return !PHOTOS.has(`${id}_${dir}.jpg`) && !PHOTOS.has(`${id}.jpg`);
+}
+
 function showPhoto(){
   const gen = ++photoGen;
   const s = scenes[current];
   const cands = photoCandidates(current, viewDir);
   const next = document.getElementById(activeLayer === "A" ? "layerB" : "layerA");
   const prev = document.getElementById(activeLayer === "A" ? "layerA" : "layerB");
+  const spinner = document.getElementById("loading");
+
+  // 遅い時だけ回転表示を出す。速いときに一瞬光ると点滅して見えるので待つ。
+  clearTimeout(loadTimer);
+  loadTimer = setTimeout(() => { if(gen === photoGen) spinner.classList.add("on"); }, 400);
+  const settled = () => { clearTimeout(loadTimer); spinner.classList.remove("on"); };
 
   let i = 0;
   const tryNext = () => {
     if(gen !== photoGen) return;   // 新しい表示要求に追い越された
     if(i >= cands.length){
-      // 撮影予定の表示は編集時のみ。通常モードは availableDirs が写真のある方角しか
-      // 返さないためここには来ない。
-      if(!EDIT) return;
+      settled();
       next.style.backgroundImage = "none";
-      next.innerHTML = `
-        <div class="missing">
-          <h2><span class="cam">📷</span> ${s.name}</h2>
-          <div class="dirNote">${DIR_LABEL[viewDir]}向きの写真</div>
-          <code>${cands[0]}</code>
-        </div>`;
+      next.innerHTML = photoPlanned(current, viewDir)
+        // 未撮影。通常モードは availableDirs が写真のある方角しか返さないので ?edit でのみ来る。
+        ? `<div class="missing">
+             <h2><span class="cam">📷</span> ${s.name}</h2>
+             <div class="dirNote">${DIR_LABEL[viewDir]}向きの写真</div>
+             <code>${cands[0]}</code>
+             <p>この方角は未撮影です。</p>
+           </div>`
+        // 一覧にある写真が出せない＝通信の失敗。黙って前の地点の写真を残すと、
+        // 地点名と景色が食い違ったまま案内が続いてしまう。
+        : `<div class="missing">
+             <h2><span class="cam">⚠️</span> 写真を読み込めませんでした</h2>
+             <div class="dirNote">${s.name}／${DIR_LABEL[viewDir]}向き</div>
+             <button class="retry" onclick="showPhoto()">再読み込み</button>
+             <p>通信状況をご確認ください。</p>
+           </div>`;
       swapLayers(next, prev);
       return;
     }
@@ -1103,6 +1226,7 @@ function showPhoto(){
     const img = new Image();
     img.onload = () => {
       if(gen !== photoGen) return;
+      settled();
       next.innerHTML = "";
       next.style.backgroundImage = `url("${src}")`;
       swapLayers(next, prev);
@@ -1137,7 +1261,7 @@ function swapLayers(next, prev){
 // 写真の無い区間のうち最大の空きで円環を切り開く。こうして端を作ることで、
 // 回転が永遠に回り続けて自分の向きを見失うのを防ぐ。
 function turnArc(id){
-  const dirs = availableDirs(id);   // DIRS 順＝時計回り
+  const dirs = turnDirs(id);   // DIRS 順＝時計回り
   if(dirs.length >= 4 || dirs.length <= 1) return null;
   // 180°離れた2枚だけの地点は、左右どちらへ回っても着く先が同じ1枚しかない。
   // 端を作っても回れる範囲は変わらず、片側だけ押せないのが不自然になるので制限しない。
@@ -1154,7 +1278,7 @@ function turnArc(id){
 
 // step(-1=左, +1=右) 方向に回転した先の方角。弧の端でそれ以上回れないなら null。
 function turnTarget(step){
-  const dirs = availableDirs(current);
+  const dirs = turnDirs(current);
   if(dirs.length <= 1) return null;
   const arc = turnArc(current);
   if(!arc){                                  // 全方角に写真あり: 従来どおり一周できる
@@ -1212,7 +1336,8 @@ function pushOut(it, o, area){
 // 動かせないUIの矩形（#hotspots 内のローカル座標）。矢印はこれらを避ける。
 function obstacleRects(area){
   const out = [];
-  document.querySelectorAll(".turnBtn, .navChip, #compass, #minimap").forEach(el => {
+  // 横持ちでは写真の帯が画面いっぱいになり、上部の地点名の帯や使い方ボタンとも重なる。
+  document.querySelectorAll(".turnBtn, .navChip, #compass, #minimap, #topbar, #howtoBtn").forEach(el => {
     if(el.offsetParent === null) return;   // 非表示のものは障害物にしない
     const r = el.getBoundingClientRect();
     if(!r.width || !r.height) return;
@@ -1274,7 +1399,8 @@ function renderHotspots(){
   s.links.forEach((l, i) => {
     const stairs = (l.dir === "up" || l.dir === "down");
     if(!stairs && Math.abs(relAngle(l)) > 90) return; // 背中側にある行き先は下部バーへ
-    const el = document.createElement("div");
+    const el = document.createElement("button");
+    el.type = "button";
     el.className = "hotspot" + (stairs ? " stairs" : "");
     el.dataset.link = i;
     const icon = stairs ? stairsSvg(l.dir) : arrowSvg(Math.round(relAngle(l) / 45) * 45);
@@ -1300,9 +1426,11 @@ function renderNavBar(){
     items.push({l, ic: a > 0 ? "↷" : "↶"});
   });
   items.forEach(({l, ic}) => {
-    const c = document.createElement("div");
+    const c = document.createElement("button");
+    c.type = "button";
     c.className = "navChip";
-    c.innerHTML = `<span class="ic">${ic}</span>${l.label}`;
+    c.innerHTML = `<span class="ic" aria-hidden="true">${ic}</span>${l.label}`;
+    c.setAttribute("aria-label", `振り向いて ${l.label}`);
     c.onclick = () => goTo(l.to);
     bar.appendChild(c);
   });
@@ -1322,8 +1450,9 @@ function renderCompass(){
   });
   comp.querySelector(".center .big").textContent = DIR_LABEL[viewDir];
   // 見られる方角が1つだけなら回転ボタン自体を出さない。弧の端では押せなくする。
+  const tdirs = turnDirs(current);
   document.querySelectorAll(".turnBtn").forEach(b => {
-    b.style.display = dirs.length > 1 ? "flex" : "none";
+    b.style.display = tdirs.length > 1 ? "flex" : "none";
     b.disabled = turnTarget(b.classList.contains("left") ? -1 : 1) === null;
   });
 }
@@ -1332,12 +1461,11 @@ function render(){
   const s = scenes[current];
 
   // top bar
-  const ids = Object.keys(scenes);
-  document.querySelector("#topTitle .eyebrow").textContent =
-    `TOKYO STATION ${scenes[current].floor} — ${ids.indexOf(current)+1} / ${ids.length}`;
+  // 地点の通し番号は案内される側には意味が無く、「27歩あるのか」と読めてしまうので出さない。
+  document.querySelector("#topTitle .eyebrow").textContent = `TOKYO STATION — ${s.floor}`;
   document.querySelector("#topTitle h1").textContent = s.name;
   document.querySelector("#topTitle .desc").textContent = s.desc || "";
-  document.getElementById("backBtn").disabled = history.length <= 1;
+  document.getElementById("backBtn").disabled = navPath.length <= 1;
 
   // コンパスは回転ボタンの表示を決める＝矢印が避ける障害物が変わるので、先に確定させる
   renderCompass();
@@ -1348,24 +1476,82 @@ function render(){
   updateMinimap();
 }
 
-function goTo(id){
+// 矢印の押し直しやダブルタップで2歩進んでしまうのを防ぐ。次の景色が出る前に
+// 同じ場所を押しても、指を離した瞬間の1回だけを進む。
+let navLock = 0;
+const NAV_LOCK_MS = 350;
+
+// jump: 構内図のピンからの移動＝通路を歩いていないので、軌跡をここで切る。
+// 区切りは連打ガードを通過してから入れる（移動しなかったのに軌跡だけ切れないように）。
+function goTo(id, jump){
   if(!scenes[id]) return;
+  const now = Date.now();
+  if(now - navLock < NAV_LOCK_MS) return;
+  navLock = now;
+  if(jump) visited.push(null);
   faceTravelDir(current, id);   // current 更新より前に呼ぶ
   current = id;
-  history.push(id);
-  if(visited[visited.length-1] !== id) visited.push(id);
+  navPath.push(id);
+  if(navPath.length > NAVPATH_MAX) navPath.shift();
+  pushUrl(id);
+  markVisited(id);
   render();
 }
 
+// 構内図のピンからの移動。隣り合っていない地点へ飛んだなら、歩いていない直線を引かない。
+function jumpTo(id){
+  goTo(id, id !== current && !scenes[current].links.some(l => l.to === id));
+}
+
+function markVisited(id){
+  if(visited[visited.length-1] !== id) visited.push(id);
+  if(visited.length > VISITED_MAX) visited.shift();
+}
+
 function goBack(){
-  if(history.length <= 1) return;
+  if(navPath.length <= 1) return;
+  // 履歴APIが使えるときはブラウザに戻ってもらい、実際の移動は popstate で行う。
+  // こうすると iPhone の端スワイプ（Safari の戻る）と ← ボタンが同じ動きになる。
+  if(urlOk) window.history.back();
+  else stepBack();
+}
+
+function stepBack(){
   const from = current;   // 離れる地点（pop 前に保持）
-  history.pop();
-  current = history[history.length-1];
+  navPath.pop();
+  current = navPath[navPath.length-1];
   faceTravelDir(from, current);   // 遷移元→遷移先の向きで視点を決定
-  if(visited[visited.length-1] !== current) visited.push(current);
+  markVisited(current);
   render();
 }
+
+/* ---------- ブラウザ履歴 ---------- */
+// 端スワイプでアプリごと終了して来た道が消えるのを防ぐ。あわせて #地点ID を残すので、
+// 再読み込みしても同じ場所から続けられる。
+// file:// 直開きでは履歴APIが例外になる環境があるため、失敗したら内部履歴だけで動かす。
+let urlOk = true;
+function pushUrl(id, replace){
+  if(!urlOk) return;
+  try{
+    window.history[replace ? "replaceState" : "pushState"]({sid: id}, "", "#" + encodeURIComponent(id));
+  }catch(e){
+    urlOk = false;
+  }
+}
+
+window.addEventListener("popstate", e => {
+  const id = (e.state && e.state.sid) || decodeURIComponent(location.hash.slice(1)) || startId;
+  if(!scenes[id] || id === current) return;
+  closeMap();   // 地図を開いたまま戻ると、開いたページだけ古い地点のままになる
+  const from = current;
+  // 戻る＝来た道を1つ削る。進む（ブラウザの→）なら積む。
+  if(navPath.length > 1 && navPath[navPath.length-2] === id) navPath.pop();
+  else navPath.push(id);
+  current = id;
+  faceTravelDir(from, id);
+  markVisited(id);
+  render();
+});
 
 // fromId から toId へ進んだ方角（同一フロアの平面移動のみ。階移動・不明時は null）
 function travelDir(fromId, toId){
@@ -1439,7 +1625,7 @@ function updateMinimap(){
   const w = frame.clientWidth;
   const img = MAP_IMG_SEL_MINI;
   const m = curMap();
-  if(img.getAttribute("src") !== m.image) img.src = m.image;
+  if(img.getAttribute("src") !== m.mini) img.src = m.mini;
   const sizeW = w * MINI_ZOOM;
   const sizeH = sizeW * (m.height / m.width);
   const p = scenes[current].map;
@@ -1476,7 +1662,11 @@ function setMapFloor(f){
 function renderMapFloor(){
   const inner = document.getElementById("mapInner");
   const m = MAPS[mapFloor];
-  document.getElementById("bigMapImg").src = m.image;
+  const big = document.getElementById("bigMapImg");
+  // 縦横比をデータから先に与える。原寸画像は開いたときに読み始めるので、届く前でも
+  // #mapInner の高さが決まっていないと、現在地への中央寄せもラベルの間引きも狂う。
+  big.style.aspectRatio = `${m.width} / ${m.height}`;
+  big.src = m.image;
 
   // フロアタブの活性表示
   document.querySelectorAll(".floorTab").forEach(b =>
@@ -1486,13 +1676,15 @@ function renderMapFloor(){
   inner.querySelectorAll(".pin").forEach(p => p.remove());
   Object.entries(scenes).forEach(([id, s]) => {
     if(s.floor !== mapFloor) return;
-    const pin = document.createElement("div");
+    const pin = document.createElement("button");
+    pin.type = "button";
     pin.className = "pin" + (s.dest ? " dest" : "") + (id === current ? " here" : "");
     pin.dataset.id = id;
     pin.style.left = s.map.x + "%";
     pin.style.top = s.map.y + "%";
     pin.innerHTML = `<div class="dot"></div><div class="plabel">${s.name}</div>`;
-    pin.onclick = () => { goTo(id); closeMap(); };
+    pin.setAttribute("aria-label", id === current ? `現在地 ${s.name}` : `${s.name} へ移動`);
+    pin.onclick = () => { jumpTo(id); closeMap(); };
     inner.appendChild(pin);
   });
 
@@ -1524,7 +1716,8 @@ function renderMapFloor(){
     seg = [];
   };
   visited.forEach(id => {
-    if(scenes[id].floor === mapFloor) seg.push(id);
+    // null は構内図からのジャンプ＝歩いていない区切り
+    if(id && scenes[id].floor === mapFloor) seg.push(id);
     else flush();
   });
   flush();
@@ -1711,10 +1904,27 @@ function initEdit(){
 }
 
 /* ---------- init ---------- */
+// 開始時に向く方角。北固定だと、始点の正面が壁で行き先の矢印が画面の隅に出るため、
+// 最初の一歩が分かりにくい。最初の行き先の方を向いて始める。
+function initDir(id){
+  const l = scenes[id].links.find(l => l.dir !== "up" && l.dir !== "down");
+  return snapDir(id, (l && travelDir(id, l.to)) || "n");
+}
+
 document.getElementById("mapInner").style.width = MAP_ZOOMS[mapZoomIdx] + "%";
 window.addEventListener("resize", () => { updateMinimap(); renderHotspots(); });
 MAP_IMG_SEL_MINI.addEventListener("load", updateMinimap);
-viewDir = snapDir(current, viewDir);   // 初期方角に写真が無い地点から始まる場合に備える
+
+// 再読み込み・共有リンクからの復帰（#地点ID）
+const hashId = decodeURIComponent(location.hash.slice(1));
+if(scenes[hashId]){
+  current = hashId;
+  navPath = [hashId];
+  visited = [hashId];
+  mapFloor = scenes[hashId].floor;
+}
+pushUrl(current, true);
+viewDir = initDir(current);
 render();
 
 if(EDIT) initEdit();
